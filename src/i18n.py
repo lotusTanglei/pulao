@@ -40,6 +40,7 @@ TRANSLATIONS = {
         "cli_desc": "AI-Ops: Natural Language Middleware Deployment Tool",
         "cli_config_help": "Configure AI API settings (Key, URL, Model).",
         "cli_deploy_help": "Deploy middleware using natural language.",
+        "enter_instruction": "Please describe what you want to deploy",
     },
     "zh": {
         "config_title": "🔧 AI-Ops 配置",
@@ -79,6 +80,7 @@ TRANSLATIONS = {
         "cli_desc": "AI-Ops: 自然语言中间件部署工具",
         "cli_config_help": "配置 AI API 设置 (Key, URL, 模型)。",
         "cli_deploy_help": "使用自然语言部署中间件。",
+        "enter_instruction": "请描述您想部署什么",
     }
 }
 

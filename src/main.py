@@ -30,13 +30,21 @@ def config():
     path = save_config(api_key, base_url, model)
     console.print(f"[green]{t('config_saved', path=path)}[/green]")
 
+from typing import Optional
+import typer
+
+
 @app.command(help=t("cli_deploy_help"))
-def deploy(instruction: str):
+def deploy(instruction: Optional[str] = typer.Argument(None)):
     """
     Deploy middleware using natural language.
     Example: ai-ops deploy "Deploy a high availability Redis cluster with 3 nodes"
     """
     from src.ai import process_deployment
+    
+    # If no instruction provided via CLI argument, ask interactively
+    if not instruction:
+        instruction = Prompt.ask(t("enter_instruction"))
     
     cfg = load_config()
     if not cfg["api_key"]:
