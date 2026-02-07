@@ -136,7 +136,6 @@ if [ "$LANG" == "zh" ]; then
     cat > /etc/docker/daemon.json <<EOF
 {
   "registry-mirrors": [
-    "https://8fsdyh77.mirror.aliyuncs.com",
     "https://docker.1ms.run",
     "https://docker.1panel.live",
     "https://docker.m.daocloud.io",
