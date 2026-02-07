@@ -30,9 +30,14 @@ def extract_yaml(text: str) -> str:
     return text
 
 def process_deployment(instruction: str, config: dict):
+    base_url = config["base_url"]
+    # Auto-fix common config error where user includes /chat/completions
+    if base_url.endswith("/chat/completions"):
+        base_url = base_url.replace("/chat/completions", "")
+    
     client = openai.OpenAI(
         api_key=config["api_key"],
-        base_url=config["base_url"]
+        base_url=base_url
     )
     
     console.print(f"[dim]{t('sending_request')}[/dim]")
