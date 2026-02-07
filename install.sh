@@ -1,0 +1,107 @@
+#!/bin/bash
+
+# Exit on error
+set -e
+
+APP_NAME="pulao"
+INSTALL_DIR="/opt/$APP_NAME"
+BIN_NAME="ai-ops"
+
+# --- Language Selection ---
+echo "Please select language / 请选择语言:"
+echo "1. English"
+echo "2. 中文"
+read -p "Enter number (1/2): " LANG_CHOICE
+
+if [ "$LANG_CHOICE" == "2" ]; then
+    LANG="zh"
+    MSG_START="🚀 开始安装 $APP_NAME..."
+    MSG_ROOT="请以 root 身份运行 (sudo ./install.sh)"
+    MSG_UPDATE="📦 正在更新系统软件源..."
+    MSG_DOCKER_INSTALL="🐳 未找到 Docker。正在安装 Docker..."
+    MSG_DOCKER_DONE="✅ Docker 安装完成。"
+    MSG_DOCKER_EXIST="✅ Docker 已安装。"
+    MSG_DIR="📂 正在设置安装目录 $INSTALL_DIR..."
+    MSG_VENV="🐍 正在配置 Python 虚拟环境..."
+    MSG_DEPS="⬇️ 正在安装 Python 依赖..."
+    MSG_CMD="🔗 正在创建系统命令 '$BIN_NAME'..."
+    MSG_DONE="🎉 安装完成!"
+    MSG_USAGE="👉 现在可以使用命令: $BIN_NAME"
+    MSG_HELP="   尝试运行: $BIN_NAME --help"
+else
+    LANG="en"
+    MSG_START="🚀 Starting installation of $APP_NAME..."
+    MSG_ROOT="Please run as root (sudo ./install.sh)"
+    MSG_UPDATE="📦 Updating system repositories..."
+    MSG_DOCKER_INSTALL="🐳 Docker not found. Installing Docker..."
+    MSG_DOCKER_DONE="✅ Docker installed."
+    MSG_DOCKER_EXIST="✅ Docker is already installed."
+    MSG_DIR="📂 Setting up installation directory at $INSTALL_DIR..."
+    MSG_VENV="🐍 Setting up Python virtual environment..."
+    MSG_DEPS="⬇️ Installing Python dependencies..."
+    MSG_CMD="🔗 Creating system command '$BIN_NAME'..."
+    MSG_DONE="🎉 Installation Complete!"
+    MSG_USAGE="👉 You can now use the command: $BIN_NAME"
+    MSG_HELP="   Try: $BIN_NAME --help"
+fi
+
+echo "$MSG_START"
+
+# Check for root
+if [ "$EUID" -ne 0 ]; then
+  echo "$MSG_ROOT"
+  exit 1
+fi
+
+# 1. System Updates & Dependencies
+echo "$MSG_UPDATE"
+apt-get update
+apt-get install -y python3 python3-pip python3-venv git curl
+
+# 2. Check/Install Docker
+if ! command -v docker &> /dev/null; then
+    echo "$MSG_DOCKER_INSTALL"
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    rm get-docker.sh
+    echo "$MSG_DOCKER_DONE"
+else
+    echo "$MSG_DOCKER_EXIST"
+fi
+
+# Ensure Docker service is running
+systemctl start docker
+systemctl enable docker
+
+# 3. Setup Application Directory
+echo "$MSG_DIR"
+mkdir -p "$INSTALL_DIR"
+cp -r ./* "$INSTALL_DIR/"
+
+# 4. Save Global Language Config
+echo "language: $LANG" > "$INSTALL_DIR/global_config.yaml"
+
+# 5. Setup Python Virtual Environment
+echo "$MSG_VENV"
+python3 -m venv "$INSTALL_DIR/venv"
+source "$INSTALL_DIR/venv/bin/activate"
+
+# 6. Install Python Dependencies
+echo "$MSG_DEPS"
+pip install --upgrade pip
+pip install -r "$INSTALL_DIR/requirements.txt"
+
+# 7. Create executable wrapper
+echo "$MSG_CMD"
+cat <<EOF > "/usr/local/bin/$BIN_NAME"
+#!/bin/bash
+source "$INSTALL_DIR/venv/bin/activate"
+export PYTHONPATH="$INSTALL_DIR"
+python3 -m src.main "\$@"
+EOF
+
+chmod +x "/usr/local/bin/$BIN_NAME"
+
+echo "$MSG_DONE"
+echo "$MSG_USAGE"
+echo "$MSG_HELP"

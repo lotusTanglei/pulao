@@ -1,0 +1,6 @@
+typer[all]
+rich
+docker
+openai
+pyyaml
+jinja2
