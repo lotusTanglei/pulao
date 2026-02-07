@@ -35,30 +35,39 @@ chmod +x install.sh
 sudo ./install.sh
 ```
 
-安装完成后，你可以使用 `ai-ops` 命令。
+安装完成后，你可以直接运行 `pulao` 命令进入交互模式。
 
-### 2. 配置 (Configuration)
+### 2. 使用 (Usage)
 
-首次使用前，请配置 LLM API 信息：
+直接输入 `pulao` 进入交互式 CLI：
 
 ```bash
-ai-ops config
+$ pulao
+
+Pulao AI-Ops - AI-Ops: Natural Language Middleware Deployment Tool
+Type 'exit' or 'quit' to leave.
+
+> 部署一个高可用的 Redis 哨兵集群
+```
+
+或者使用单次命令模式：
+
+```bash
+pulao deploy "部署一个 3 节点的 Redis 哨兵集群，密码设置为 123456"
+```
+
+### 3. 配置 (Configuration)
+
+在交互模式下输入 `config` 或 `setup`，或者运行：
+
+```bash
+pulao config
 ```
 
 你需要提供：
 *   API Key
 *   Base URL (例如 `https://api.openai.com/v1` 或中转地址)
 *   Model Name (例如 `gpt-4o`)
-
-### 3. 部署 (Deployment)
-
-使用自然语言描述你的需求：
-
-```bash
-ai-ops deploy "部署一个 3 节点的 Redis 哨兵集群，密码设置为 123456"
-```
-
-AI 将生成 Docker Compose 配置文件，确认后自动部署。
 
 ## 🛠️ 开发指南 (Development)
 

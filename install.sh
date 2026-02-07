@@ -19,7 +19,7 @@ EOF
 
 APP_NAME="pulao"
 INSTALL_DIR="/opt/$APP_NAME"
-BIN_NAME="ai-ops"
+BIN_NAME="pulao"
 REPO_URL="https://github.com/lotusTanglei/pulao/archive/refs/heads/main.zip"
 
 # --- Language Selection ---
