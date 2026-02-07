@@ -1,7 +1,7 @@
 import typer
 from rich.console import Console
 from rich.prompt import Prompt
-from src.config import load_config, save_config, add_provider, switch_provider
+from src.config import load_config, save_config, add_provider as add_provider_to_config, switch_provider
 from src.i18n import t
 from typing import Optional
 
@@ -75,11 +75,11 @@ def repl_loop():
                 cfg = load_config()
                 continue
                 
-            if cmd_name in ["add-provider", "add-provider-cmd"]:
+            if cmd_name == "add-provider":
                 if len(cmd_parts) < 2:
                     console.print("[red]Usage: add-provider <name>[/red]")
                     continue
-                add_provider_cmd(cmd_parts[1])
+                add_provider(cmd_parts[1])
                 cfg = load_config()
                 continue
                 
@@ -119,15 +119,15 @@ def providers():
         console.print(f"     Model:    {details.get('model')}")
         console.print("")
 
-@app.command(help="Add a new AI provider / 添加新的 AI 提供商")
-def add_provider_cmd(name: str):
+@app.command(name="add-provider", help="Add a new AI provider / 添加新的 AI 提供商")
+def add_provider(name: str):
     """Add a new provider."""
     console.print(f"[bold blue]Adding Provider: {name}[/bold blue]")
     api_key = Prompt.ask(t("enter_api_key"), password=True)
     base_url = Prompt.ask(t("enter_base_url"))
     model = Prompt.ask(t("enter_model"))
     
-    path = add_provider(name, api_key, base_url, model)
+    path = add_provider_to_config(name, api_key, base_url, model)
     console.print(f"[green]Provider '{name}' added successfully.[/green]")
 
 @app.command(help="Switch to another AI provider / 切换 AI 提供商")
@@ -175,7 +175,7 @@ def config():
     model = Prompt.ask(t("enter_model"), default=current_config["model"])
     
     # Save to current provider
-    add_provider(current_provider_name, api_key, base_url, model)
+    add_provider_to_config(current_provider_name, api_key, base_url, model)
     console.print(f"[green]{t('config_saved', path='config.yaml')}[/green]")
 
 @app.command(help=t("cli_deploy_help"))
