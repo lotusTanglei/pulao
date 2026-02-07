@@ -116,9 +116,14 @@ fi
 # 3. Check/Install Docker
 if ! command -v docker &> /dev/null; then
     echo "$MSG_DOCKER_INSTALL"
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sh get-docker.sh
-    rm get-docker.sh
+    # Try using Aliyun mirror for China users or standard get.docker.com
+    if [ "$LANG" == "zh" ]; then
+        curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
+    else
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sh get-docker.sh
+        rm get-docker.sh
+    fi
     echo "$MSG_DOCKER_DONE"
 else
     echo "$MSG_DOCKER_EXIST"
