@@ -20,6 +20,7 @@ EOF
 APP_NAME="pulao"
 INSTALL_DIR="/opt/$APP_NAME"
 BIN_NAME="ai-ops"
+REPO_URL="https://github.com/lotusTanglei/pulao/archive/refs/heads/main.zip"
 
 # --- Language Selection ---
 echo "Please select language / 请选择语言:"
@@ -32,6 +33,8 @@ if [ "$LANG_CHOICE" == "2" ]; then
     MSG_START="🚀 开始安装 $APP_NAME..."
     MSG_ROOT="请以 root 身份运行 (sudo ./install.sh)"
     MSG_UPDATE="📦 正在更新系统软件源..."
+    MSG_DOWNLOADING="⬇️ 正在下载源码..."
+    MSG_UNZIP_INSTALL="📦 正在安装 unzip..."
     MSG_DOCKER_INSTALL="🐳 未找到 Docker。正在安装 Docker..."
     MSG_DOCKER_DONE="✅ Docker 安装完成。"
     MSG_DOCKER_EXIST="✅ Docker 已安装。"
@@ -47,6 +50,8 @@ else
     MSG_START="🚀 Starting installation of $APP_NAME..."
     MSG_ROOT="Please run as root (sudo ./install.sh)"
     MSG_UPDATE="📦 Updating system repositories..."
+    MSG_DOWNLOADING="⬇️ Downloading source code..."
+    MSG_UNZIP_INSTALL="📦 Installing unzip..."
     MSG_DOCKER_INSTALL="🐳 Docker not found. Installing Docker..."
     MSG_DOCKER_DONE="✅ Docker installed."
     MSG_DOCKER_EXIST="✅ Docker is already installed."
@@ -72,7 +77,37 @@ echo "$MSG_UPDATE"
 apt-get update
 apt-get install -y python3 python3-pip python3-venv git curl
 
-# 2. Check/Install Docker
+# 2. Check source availability (Download if running via curl pipe)
+if [ ! -f "requirements.txt" ] || [ ! -d "src" ]; then
+    echo "$MSG_DOWNLOADING"
+    
+    # Install unzip if needed
+    if ! command -v unzip &> /dev/null; then
+        echo "$MSG_UNZIP_INSTALL"
+        apt-get install -y unzip
+    fi
+
+    # Create temp dir
+    TMP_DIR=$(mktemp -d)
+    curl -L -o "$TMP_DIR/source.zip" "$REPO_URL"
+    
+    # Unzip and move to current dir (which might be a temp execution dir)
+    # We unzip to a specific location to avoid cluttering /root or wherever
+    unzip -q "$TMP_DIR/source.zip" -d "$TMP_DIR"
+    
+    # The zip usually contains a folder like pulao-main
+    SOURCE_ROOT=$(find "$TMP_DIR" -maxdepth 1 -type d -name "pulao-*" | head -n 1)
+    
+    if [ -z "$SOURCE_ROOT" ]; then
+        echo "Error: Could not find source directory in zip."
+        exit 1
+    fi
+    
+    # Change context to the downloaded source
+    cd "$SOURCE_ROOT"
+fi
+
+# 3. Check/Install Docker
 if ! command -v docker &> /dev/null; then
     echo "$MSG_DOCKER_INSTALL"
     curl -fsSL https://get.docker.com -o get-docker.sh
@@ -87,25 +122,25 @@ fi
 systemctl start docker
 systemctl enable docker
 
-# 3. Setup Application Directory
+# 4. Setup Application Directory
 echo "$MSG_DIR"
 mkdir -p "$INSTALL_DIR"
 cp -r ./* "$INSTALL_DIR/"
 
-# 4. Save Global Language Config
+# 5. Save Global Language Config
 echo "language: $LANG" > "$INSTALL_DIR/global_config.yaml"
 
-# 5. Setup Python Virtual Environment
+# 6. Setup Python Virtual Environment
 echo "$MSG_VENV"
 python3 -m venv "$INSTALL_DIR/venv"
 source "$INSTALL_DIR/venv/bin/activate"
 
-# 6. Install Python Dependencies
+# 7. Install Python Dependencies
 echo "$MSG_DEPS"
 pip install --upgrade pip
 pip install -r "$INSTALL_DIR/requirements.txt"
 
-# 7. Create executable wrapper
+# 8. Create executable wrapper
 echo "$MSG_CMD"
 cat <<EOF > "/usr/local/bin/$BIN_NAME"
 #!/bin/bash

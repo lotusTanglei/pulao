@@ -13,19 +13,10 @@ Pulao 是一个基于 AI 的智能运维工具，旨在帮助运维人员通过�
 
 ### 1. 获取代码与安装 (Download & Installation)
 
-可以通过下载压缩包的方式获取代码（无需 Git）：
+推荐使用以下的一键安装命令，它会自动下载并安装所有依赖（无需手动下载或安装 unzip）：
 
 ```bash
-# 1. 下载源码压缩包
-curl -L -o pulao.zip https://github.com/lotusTanglei/pulao/archive/refs/heads/main.zip
-
-# 2. 解压 (需确保已安装 unzip: sudo apt install unzip)
-unzip pulao.zip
-cd pulao-main
-
-# 3. 运行安装脚本
-chmod +x install.sh
-sudo ./install.sh
+curl -fsSL https://raw.githubusercontent.com/lotusTanglei/pulao/main/install.sh | sudo bash
 ```
 
 安装完成后，你可以使用 `ai-ops` 命令。
