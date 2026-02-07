@@ -1,7 +1,7 @@
 import typer
 from rich.console import Console
 from rich.prompt import Prompt
-from src.config import load_config, save_config
+from src.config import load_config, save_config, add_provider, switch_provider
 from src.i18n import t
 from typing import Optional
 
@@ -21,7 +21,15 @@ def main(ctx: typer.Context):
 def repl_loop():
     """Interactive Read-Eval-Print Loop"""
     console.print(f"[bold green]Pulao AI-Ops[/bold green] - {t('cli_desc')}")
-    console.print("[dim]Type 'exit' or 'quit' to leave.[/dim]")
+    console.print("-" * 50)
+    console.print(f"[bold]Available Commands / 可用命令:[/bold]")
+    console.print("  • [cyan]deploy <instruction>[/cyan]: Deploy middleware (e.g., 'deploy redis') / 部署中间件")
+    console.print("  • [cyan]config[/cyan] or [cyan]setup[/cyan] : Configure current provider / 配置当前提供商")
+    console.print("  • [cyan]providers[/cyan]          : List all providers / 列出所有提供商")
+    console.print("  • [cyan]use <name>[/cyan]          : Switch provider / 切换提供商")
+    console.print("  • [cyan]add-provider-cmd <name>[/cyan] : Add new provider / 添加提供商")
+    console.print("  • [cyan]exit[/cyan] or [cyan]quit[/cyan]   : Exit Pulao / 退出")
+    console.print("-" * 50)
     
     cfg = load_config()
     
@@ -64,22 +72,88 @@ def repl_loop():
         except Exception as e:
             console.print(f"[bold red]System Error:[/bold red] {e}")
 
+@app.command(help="List all configured AI providers / 列出所有 AI 提供商")
+def providers():
+    """List all configured providers."""
+    cfg = load_config()
+    current = cfg.get("current_provider", "default")
+    providers_dict = cfg.get("providers", {})
+    
+    console.print("[bold]Configured Providers / 已配置的提供商:[/bold]")
+    
+    # Sort providers to ensure consistent indexing
+    # Always put 'default' first if exists, then alphabetical
+    names = sorted(providers_dict.keys())
+    if "default" in names:
+        names.remove("default")
+        names.insert(0, "default")
+        
+    for idx, name in enumerate(names, 1):
+        details = providers_dict[name]
+        status = "[green]* (current)[/green]" if name == current else ""
+        console.print(f"  {idx}. [cyan]{name}[/cyan] {status}")
+        console.print(f"     Base URL: {details.get('base_url')}")
+        console.print(f"     Model:    {details.get('model')}")
+        console.print("")
+
+@app.command(help="Add a new AI provider / 添加新的 AI 提供商")
+def add_provider_cmd(name: str):
+    """Add a new provider."""
+    console.print(f"[bold blue]Adding Provider: {name}[/bold blue]")
+    api_key = Prompt.ask(t("enter_api_key"), password=True)
+    base_url = Prompt.ask(t("enter_base_url"))
+    model = Prompt.ask(t("enter_model"))
+    
+    path = add_provider(name, api_key, base_url, model)
+    console.print(f"[green]Provider '{name}' added successfully.[/green]")
+
+@app.command(help="Switch to another AI provider / 切换 AI 提供商")
+def use(name_or_index: str):
+    """Switch current provider by name or index."""
+    cfg = load_config()
+    providers_dict = cfg.get("providers", {})
+    
+    # Prepare list for index lookup
+    names = sorted(providers_dict.keys())
+    if "default" in names:
+        names.remove("default")
+        names.insert(0, "default")
+    
+    target_name = name_or_index
+    
+    # Check if input is a digit (index)
+    if name_or_index.isdigit():
+        idx = int(name_or_index)
+        if 1 <= idx <= len(names):
+            target_name = names[idx - 1]
+        else:
+            console.print(f"[red]Invalid index: {idx}. Valid range: 1-{len(names)}[/red]")
+            return
+
+    try:
+        switch_provider(target_name)
+        console.print(f"[green]Switched to provider: {target_name}[/green]")
+    except ValueError as e:
+        console.print(f"[red]{str(e)}[/red]")
+
 @app.command(help=t("cli_config_help"))
 def config():
     """
-    Configure AI API settings (Key, URL, Model).
+    Configure CURRENT AI API settings (Key, URL, Model).
     """
     # Reload config to ensure language is set correctly
     current_config = load_config()
+    current_provider_name = current_config.get("current_provider", "default")
     
-    console.print(f"[bold blue]{t('config_title')}[/bold blue]")
+    console.print(f"[bold blue]{t('config_title')} ({current_provider_name})[/bold blue]")
     
     api_key = Prompt.ask(t("enter_api_key"), default=current_config["api_key"] or None, password=True)
     base_url = Prompt.ask(t("enter_base_url"), default=current_config["base_url"])
     model = Prompt.ask(t("enter_model"), default=current_config["model"])
     
-    path = save_config(api_key, base_url, model)
-    console.print(f"[green]{t('config_saved', path=path)}[/green]")
+    # Save to current provider
+    add_provider(current_provider_name, api_key, base_url, model)
+    console.print(f"[green]{t('config_saved', path='config.yaml')}[/green]")
 
 @app.command(help=t("cli_deploy_help"))
 def deploy(instruction: Optional[str] = typer.Argument(None)):
