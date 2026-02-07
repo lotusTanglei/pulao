@@ -26,7 +26,13 @@ REPO_URL="https://github.com/lotusTanglei/pulao/archive/refs/heads/main.zip"
 echo "Please select language / 请选择语言:"
 echo "1. English"
 echo "2. 中文"
-read -p "Enter number (1/2): " LANG_CHOICE
+
+# Try to read from tty if available (to support curl | bash)
+if [ -c /dev/tty ]; then
+    read -p "Enter number (1/2): " LANG_CHOICE < /dev/tty
+else
+    LANG_CHOICE="1"
+fi
 
 if [ "$LANG_CHOICE" == "2" ]; then
     LANG="zh"
