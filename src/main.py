@@ -75,11 +75,11 @@ def repl_loop():
                 cfg = load_config()
                 continue
                 
-            if cmd_name in ["add-provider", "add-provider-cmd"]:
+            if cmd_name == "add-provider":
                 if len(cmd_parts) < 2:
                     console.print("[red]Usage: add-provider <name>[/red]")
                     continue
-                add_provider_cmd(cmd_parts[1])
+                add_provider(cmd_parts[1])
                 cfg = load_config()
                 continue
                 
