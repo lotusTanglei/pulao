@@ -27,7 +27,7 @@ def repl_loop():
     console.print("  • [cyan]config[/cyan] or [cyan]setup[/cyan] : Configure current provider / 配置当前提供商")
     console.print("  • [cyan]providers[/cyan]          : List all providers / 列出所有提供商")
     console.print("  • [cyan]use <name>[/cyan]          : Switch provider / 切换提供商")
-    console.print("  • [cyan]add-provider-cmd <name>[/cyan] : Add new provider / 添加提供商")
+    console.print("  • [cyan]add-provider <name>[/cyan] : Add new provider / 添加提供商")
     console.print("  • [cyan]exit[/cyan] or [cyan]quit[/cyan]   : Exit Pulao / 退出")
     console.print("-" * 50)
     
@@ -48,15 +48,38 @@ def repl_loop():
         try:
             instruction = Prompt.ask("\n[bold cyan]>[/bold cyan] ")
             
-            if instruction.lower() in ["exit", "quit"]:
-                console.print("Bye!")
-                break
-            
             if not instruction.strip():
                 continue
+            
+            cmd_parts = instruction.strip().split()
+            cmd_name = cmd_parts[0].lower()
+            
+            if cmd_name in ["exit", "quit"]:
+                console.print("Bye!")
+                break
                 
-            if instruction.lower() in ["config", "setup"]:
+            if cmd_name in ["config", "setup"]:
                 config()
+                cfg = load_config()
+                continue
+
+            if cmd_name == "providers":
+                providers()
+                continue
+                
+            if cmd_name == "use":
+                if len(cmd_parts) < 2:
+                    console.print("[red]Usage: use <name_or_index>[/red]")
+                    continue
+                use(cmd_parts[1])
+                cfg = load_config()
+                continue
+                
+            if cmd_name == "add-provider":
+                if len(cmd_parts) < 2:
+                    console.print("[red]Usage: add-provider <name>[/red]")
+                    continue
+                add_provider(cmd_parts[1])
                 cfg = load_config()
                 continue
                 
