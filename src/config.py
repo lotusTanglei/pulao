@@ -22,7 +22,7 @@ def load_config() -> Dict[str, str]:
     # 1. Load Global Config (set by install.sh)
     if GLOBAL_CONFIG_FILE.exists():
         try:
-            with open(GLOBAL_CONFIG_FILE, "r") as f:
+            with open(GLOBAL_CONFIG_FILE, "r", encoding="utf-8") as f:
                 global_config = yaml.safe_load(f) or {}
                 final_config.update(global_config)
         except Exception:
@@ -31,7 +31,7 @@ def load_config() -> Dict[str, str]:
     # 2. Load User Config (overrides global)
     if CONFIG_FILE.exists():
         try:
-            with open(CONFIG_FILE, "r") as f:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 user_config = yaml.safe_load(f) or {}
                 final_config.update(user_config)
         except Exception as e:
@@ -56,7 +56,7 @@ def save_config(api_key: str, base_url: str, model: str, language: str = None):
         "language": language or current.get("language", "en")
     }
     
-    with open(CONFIG_FILE, "w") as f:
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
         yaml.dump(config, f)
     
     # Update current runtime language

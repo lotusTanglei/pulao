@@ -19,7 +19,7 @@ def deploy_compose(yaml_content: str, project_name: str = "default"):
     compose_file = project_dir / "docker-compose.yml"
     
     # Write the file
-    with open(compose_file, "w") as f:
+    with open(compose_file, "w", encoding="utf-8") as f:
         f.write(yaml_content)
         
     console.print(f"[green]{t('written_compose', path=compose_file)}[/green]")
