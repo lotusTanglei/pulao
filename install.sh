@@ -119,11 +119,21 @@ if ! command -v docker &> /dev/null; then
     # Try using Aliyun mirror for China users or standard get.docker.com
     if [ "$LANG" == "zh" ]; then
         curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
-        
-        # Configure Docker Registry Mirrors
-        echo "🔧 Configuring Docker Registry Mirrors..."
-        mkdir -p /etc/docker
-        cat > /etc/docker/daemon.json <<EOF
+    else
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sh get-docker.sh
+        rm get-docker.sh
+    fi
+    echo "$MSG_DOCKER_DONE"
+else
+    echo "$MSG_DOCKER_EXIST"
+fi
+
+# 4. Configure Docker Registry Mirrors (Always run for ZH users)
+if [ "$LANG" == "zh" ]; then
+    echo "🔧 Configuring Docker Registry Mirrors..."
+    mkdir -p /etc/docker
+    cat > /etc/docker/daemon.json <<EOF
 {
   "registry-mirrors": [
     "https://8fsdyh77.mirror.aliyuncs.com",
@@ -141,16 +151,8 @@ if ! command -v docker &> /dev/null; then
   ]
 }
 EOF
-        systemctl daemon-reload
-        systemctl restart docker
-    else
-        curl -fsSL https://get.docker.com -o get-docker.sh
-        sh get-docker.sh
-        rm get-docker.sh
-    fi
-    echo "$MSG_DOCKER_DONE"
-else
-    echo "$MSG_DOCKER_EXIST"
+    systemctl daemon-reload
+    systemctl restart docker
 fi
 
 # Ensure Docker service is running

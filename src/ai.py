@@ -18,6 +18,7 @@ Rules:
 3. If the user requests high availability (HA), ensure you define the necessary replicas, environment variables, and networking.
 4. Use standard official images.
 5. Do not include markdown preamble or postscript if not requested.
+6. Do NOT include top-level 'version' field (it is obsolete in recent Docker Compose versions).
 """
 
 def extract_yaml(text: str) -> str:
