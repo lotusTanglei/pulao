@@ -13,14 +13,15 @@ Pulao 是一个基于 AI 的智能运维工具，旨在帮助运维人员通过�
 
 ### 1. 获取代码与安装 (Download & Installation)
 
-首先从 GitHub 克隆代码仓库，然后运行安装脚本：
+可以通过下载压缩包的方式获取代码（无需 Git）：
 
 ```bash
-# 1. 克隆仓库 (请替换为实际仓库地址)
-git clone https://github.com/lotusTanglei/pulao.git
+# 1. 下载源码压缩包
+curl -L -o pulao.zip https://github.com/lotusTanglei/pulao/archive/refs/heads/main.zip
 
-# 2. 进入项目目录
-cd pulao
+# 2. 解压 (需确保已安装 unzip: sudo apt install unzip)
+unzip pulao.zip
+cd pulao-main
 
 # 3. 运行安装脚本
 chmod +x install.sh
