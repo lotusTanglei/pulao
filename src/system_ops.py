@@ -1,8 +1,37 @@
 import subprocess
+import platform
+import socket
 from rich.console import Console
 from src.i18n import t
 
 console = Console()
+
+def get_system_info() -> str:
+    """Collect basic system information for AI context."""
+    info = []
+    
+    # OS Info
+    try:
+        info.append(f"OS: {platform.system()} {platform.release()} ({platform.machine()})")
+    except:
+        pass
+
+    # IP Address (Internal)
+    try:
+        hostname = socket.gethostname()
+        ip_addr = socket.gethostbyname(hostname)
+        info.append(f"Internal IP: {ip_addr}")
+    except:
+        pass
+
+    # Docker Version
+    try:
+        docker_ver = subprocess.check_output(["docker", "--version"], text=True).strip()
+        info.append(f"Docker: {docker_ver}")
+    except:
+        info.append("Docker: Not detected")
+        
+    return "\n".join(info)
 
 def execute_shell_command(command: str):
     """
