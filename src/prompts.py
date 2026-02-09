@@ -130,6 +130,8 @@ def save_prompts(prompts: Dict, lang: str):
     with open(prompts_file, "w", encoding="utf-8") as f:
         yaml.dump(prompts, f, allow_unicode=True, default_flow_style=False)
 
+from src.system_ops import get_system_info
+
 def get_system_prompt(lang: str = "en") -> str:
     """Generate the full system prompt based on language."""
     prompts = load_prompts(lang)
