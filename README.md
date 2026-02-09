@@ -1,5 +1,7 @@
 # Pulao: AI-Powered DevOps Assistant
 
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+
 Pulao 是一个基于 AI 的智能运维工具，旨在帮助运维人员通过自然语言完成 Docker 中间件部署和系统日常运维。它不仅仅是一个简单的命令生成器，更是一个懂你意图、安全可控的运维伙伴。
 
 ## ✨ 核心特性 (Features)

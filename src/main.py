@@ -7,6 +7,7 @@ from rich.panel import Panel
 from rich.text import Text
 from src.config import load_config, save_config, add_provider as add_provider_to_config, switch_provider
 from src.i18n import t
+from src import __version__
 from typing import Optional
 import sys
 import io
@@ -44,7 +45,7 @@ def get_layout(config):
     )
     
     # Create header content
-    app_name = Text("Pulao AI-Ops", style="bold green")
+    app_name = Text(f"Pulao AI-Ops v{__version__}", style="bold green")
     desc = Text(f" - {t('cli_desc')}")
     
     current_provider = config.get("current_provider", "default")
@@ -71,7 +72,7 @@ def print_header(cfg):
     model = cfg.get("model", "unknown")
     
     console.print(Panel(
-        f"[bold green]Pulao AI-Ops[/bold green] - {t('cli_desc')}\n"
+        f"[bold green]Pulao AI-Ops[/bold green] v{__version__} - {t('cli_desc')}\n"
         f"[dim]Provider: [cyan]{current_provider}[/cyan] | Model: [cyan]{model}[/cyan][/dim]",
         style="blue",
         expand=False
