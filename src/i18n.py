@@ -43,6 +43,12 @@ TRANSLATIONS = {
         "enter_instruction": "Please describe what you want to deploy",
         "clarification_needed": "🤔 AI needs more details:",
         "clarification_prompt": "Please provide the details (or press Enter to skip): ",
+        "executing_command": "Executing Shell Command",
+        "command_success": "✅ Command executed successfully.",
+        "command_failed": "❌ Command failed with non-zero exit code.",
+        "error_executing_command": "❌ Error executing command:",
+        "proposed_command": "\n💻 Proposed Command:",
+        "confirm_execute": "🚀 Do you want to execute this command?",
     },
     "zh": {
         "config_title": "🔧 AI-Ops 配置",
@@ -85,6 +91,12 @@ TRANSLATIONS = {
         "enter_instruction": "请描述您想部署什么",
         "clarification_needed": "🤔 AI 需要更多细节:",
         "clarification_prompt": "请补充细节 (或按回车跳过): ",
+        "executing_command": "执行 Shell 命令",
+        "command_success": "✅ 命令执行成功。",
+        "command_failed": "❌ 命令执行失败 (退出码非 0)。",
+        "error_executing_command": "❌ 执行命令时出错:",
+        "proposed_command": "\n💻 建议执行的命令:",
+        "confirm_execute": "🚀 是否执行此命令?",
     }
 }
 

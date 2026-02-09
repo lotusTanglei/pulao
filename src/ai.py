@@ -4,26 +4,36 @@ from rich.syntax import Syntax
 from rich.prompt import Confirm, Prompt
 import re
 from src.docker_ops import deploy_compose
+from src.system_ops import execute_shell_command
 from src.i18n import t
 
 console = Console()
 
 SYSTEM_PROMPT = """
-You are a DevOps expert specializing in Docker.
-Your goal is to help users deploy middleware.
+You are a DevOps expert specializing in Linux and Docker.
+Your goal is to help users deploy middleware OR execute system operations.
 
 Process:
 1. Analyze the user's request.
-2. If the request is vague (e.g., just "install redis"), you MUST ask clarifying questions to gather requirements (e.g., version, password, persistence, port mapping).
-   - Return a JSON object: {"type": "question", "content": "Your clarifying question here"}
-3. If the request is detailed enough or the user insists on defaults, generate the `docker-compose.yml`.
-   - Return a JSON object: {"type": "plan", "content": "yaml_content_here"}
+2. If the request is vague (e.g., just "install redis"), you MUST ask clarifying questions.
+   - Return JSON: {"type": "question", "content": "Your clarifying question here"}
+3. If the request is a DEPLOYMENT task (e.g., "deploy redis", "install mysql"):
+   - Generate a valid `docker-compose.yml`.
+   - Return JSON: {"type": "plan", "content": "yaml_content_here"}
+4. If the request is a GENERAL SYSTEM COMMAND (e.g., "check disk usage", "delete all containers", "ping google.com"):
+   - Generate a single, safe, and correct Bash command.
+   - Return JSON: {"type": "command", "content": "bash_command_here"}
 
 Rules for YAML generation:
 1. Output MUST be a valid `docker-compose.yml`.
 2. Do NOT include top-level 'version' field.
 3. Use standard official images.
 4. Ensure data persistence (volumes) if applicable.
+
+Rules for Command generation:
+1. Use standard Linux commands (Ubuntu/Debian compatible).
+2. Avoid destructive commands (rm -rf /) unless explicitly requested and clearly dangerous.
+3. Provide a single string command (can use pipes `|` and `&&`).
 
 Output Format:
 You must strictly output JSON.
@@ -99,6 +109,21 @@ def process_deployment(instruction: str, config: dict):
                 
                 if Confirm.ask(t("confirm_deploy")):
                     deploy_compose(yaml_content)
+                else:
+                    console.print(f"[yellow]{t('deploy_cancelled')}[/yellow]")
+                break
+
+            elif result.get("type") == "command":
+                cmd_content = result["content"]
+                
+                # Display the command
+                console.print(f"[bold]{t('proposed_command')}[/bold]")
+                syntax = Syntax(cmd_content, "bash", theme="monokai")
+                console.print(syntax)
+                console.print("")
+                
+                if Confirm.ask(t("confirm_execute")):
+                    execute_shell_command(cmd_content)
                 else:
                     console.print(f"[yellow]{t('deploy_cancelled')}[/yellow]")
                 break
