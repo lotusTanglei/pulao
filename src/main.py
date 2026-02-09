@@ -4,6 +4,17 @@ from rich.prompt import Prompt
 from src.config import load_config, save_config, add_provider as add_provider_to_config, switch_provider
 from src.i18n import t
 from typing import Optional
+import sys
+import io
+
+# Force UTF-8 encoding for stdin/stdout/stderr to prevent decoding errors with Chinese input
+if sys.stdin.encoding != 'utf-8':
+    try:
+        sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    except Exception:
+        pass
 
 load_config()
 
