@@ -81,7 +81,8 @@ fi
 # 1. System Updates & Dependencies
 echo "$MSG_UPDATE"
 apt-get update
-apt-get install -y python3 python3-pip python3-venv git curl
+# Install libreadline-dev for better python input handling
+apt-get install -y python3 python3-pip python3-venv git curl libreadline-dev
 
 # 2. Check source availability (Download if running via curl pipe)
 if [ ! -f "requirements.txt" ] || [ ! -d "src" ]; then

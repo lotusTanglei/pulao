@@ -16,6 +16,15 @@ if sys.stdin.encoding != 'utf-8':
     except Exception:
         pass
 
+# Add readline for better input handling (history, deletion fix)
+try:
+    import readline
+except ImportError:
+    try:
+        import gnureadline as readline
+    except ImportError:
+        pass
+
 load_config()
 
 app = typer.Typer(help=t("cli_desc"), invoke_without_command=True)

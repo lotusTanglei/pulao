@@ -36,6 +36,11 @@ Process:
 2. Avoid destructive commands (rm -rf /) unless explicitly requested and clearly dangerous.
 3. Provide a single string command (can use pipes `|` and `&&`).
 """,
+        "system_context_intro": """
+System Information:
+The following is the real-time information of the user's server. 
+You can use this information to generate more accurate commands (e.g., using the correct IP, checking specific Docker versions).
+""",
         "clarification_rules": {
             "en": """Rules for Clarification:
 1. You MUST ask questions in **English**.
@@ -74,6 +79,11 @@ You must strictly output JSON.
 1. 使用标准的 Linux 命令（兼容 Ubuntu/Debian）。
 2. 避免破坏性命令（如 rm -rf /），除非用户明确要求且知晓风险。
 3. 提供单行命令（可以使用管道 `|` 和 `&&`）。
+""",
+        "system_context_intro": """
+系统信息 (System Context):
+以下是用户服务器的实时信息。
+你可以利用这些信息生成更精准的命令（例如使用正确的内网 IP，或适配当前 Docker 版本）。
 """,
         "clarification_rules": {
             "zh": """澄清提问规则:
@@ -138,8 +148,18 @@ def get_system_prompt(lang: str = "en") -> str:
     else:
          clarification_rules = clarification_rules_dict.get(lang, clarification_rules_dict.get("en", ""))
     
+    # Inject system info
+    system_info = get_system_info()
+    
+    # Get system context intro prompt
+    system_context_intro = prompts.get("system_context_intro", "\nSystem Context:\n")
+    
+    system_context = f"{system_context_intro}\n{system_info}\n"
+    
     full_prompt = f"""
 {prompts['role_definition']}
+
+{system_context}
 
 {prompts['deployment_rules']}
 
