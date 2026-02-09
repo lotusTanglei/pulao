@@ -35,6 +35,8 @@ else
 fi
 
 if [ "$LANG_CHOICE" == "2" ]; then
+    # Use Gitee for China users
+    REPO_URL="https://gitee.com/lotus-ian-tanglei/pulao/repository/archive/main.zip"
     LANG="zh"
     MSG_START="🚀 开始安装 $APP_NAME..."
     MSG_ROOT="请以 root 身份运行 (sudo ./install.sh)"

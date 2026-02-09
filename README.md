@@ -17,8 +17,14 @@ Pulao 是一个基于 AI 的智能运维工具，旨在帮助运维人员通过�
 
 **一键安装 (推荐)**
 
+GitHub (国际):
 ```bash
 curl -L https://raw.githubusercontent.com/lotusTanglei/pulao/main/install.sh | bash
+```
+
+Gitee (国内加速):
+```bash
+curl -L https://gitee.com/lotus-ian-tanglei/pulao/raw/main/install.sh | bash
 ```
 
 ### 2. 基础使用 (Basic Usage)
@@ -95,8 +101,12 @@ clarification_rules:
 ## 🛠️ 开发指南 (Development)
 
 ```bash
-# 1. 克隆项目
+# 1. 克隆项目 (GitHub)
 git clone https://github.com/lotusTanglei/pulao.git
+
+# 或者 Gitee
+git clone https://gitee.com/lotus-ian-tanglei/pulao.git
+
 cd pulao
 
 # 2. 安装依赖
