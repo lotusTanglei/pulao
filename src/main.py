@@ -1,20 +1,17 @@
 import typer
 from rich.console import Console
 from rich.prompt import Prompt
+from rich.layout import Layout
+from rich.live import Live
+from rich.panel import Panel
+from rich.text import Text
 from src.config import load_config, save_config, add_provider as add_provider_to_config, switch_provider
 from src.i18n import t
 from typing import Optional
 import sys
 import io
 
-# Force UTF-8 encoding for stdin/stdout/stderr to prevent decoding errors with Chinese input
-if sys.stdin.encoding != 'utf-8':
-    try:
-        sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-    except Exception:
-        pass
+# ... (rest of imports and setup)
 
 # Add readline for better input handling (history, deletion fix)
 try:
@@ -30,27 +27,59 @@ load_config()
 app = typer.Typer(help=t("cli_desc"), invoke_without_command=True)
 console = Console()
 
-@app.callback(invoke_without_command=True)
-def main(ctx: typer.Context):
-    """
-    Pulao: AI-Powered DevOps Assistant
-    """
-    if ctx.invoked_subcommand is None:
-        repl_loop()
+def get_layout(config):
+    """Generate the layout for the persistent UI."""
+    layout = Layout()
+    layout.split(
+        Layout(name="header", size=3),
+        Layout(name="body")
+    )
+    
+    # Create header content
+    app_name = Text("Pulao AI-Ops", style="bold green")
+    desc = Text(f" - {t('cli_desc')}")
+    
+    current_provider = config.get("current_provider", "default")
+    model = config.get("model", "unknown")
+    status = Text(f" | Provider: {current_provider} | Model: {model}", style="dim cyan")
+    
+    header_text = Text.assemble(app_name, desc, status)
+    layout["header"].update(Panel(header_text, style="blue"))
+    
+    # Body is just a placeholder, as we print to console directly below the Live context usually.
+    # However, 'Live' takes over the screen. For a REPL, 'Live' is tricky because input() blocks.
+    # A better approach for a simple sticky header in a blocking REPL is to just reprint it 
+    # or use a full TUI lib like textual. 
+    # Given the constraints and current architecture, a true sticky header while using blocking input() 
+    # is difficult without clearing screen.
+    # Let's try a simpler approach: Clear screen and reprint header on every loop iteration.
+    return layout
+
+def print_header(cfg):
+    """Print a sticky-like header by clearing screen."""
+    console.clear()
+    
+    current_provider = cfg.get("current_provider", "default")
+    model = cfg.get("model", "unknown")
+    
+    console.print(Panel(
+        f"[bold green]Pulao AI-Ops[/bold green] - {t('cli_desc')}\n"
+        f"[dim]Provider: [cyan]{current_provider}[/cyan] | Model: [cyan]{model}[/cyan][/dim]",
+        style="blue",
+        expand=False
+    ))
+    
+    console.print(f"[bold]Available Commands / 可用命令:[/bold]")
+    console.print("  • [cyan]deploy <instruction>[/cyan]: Deploy middleware / 部署中间件")
+    console.print("  • [cyan]config[/cyan]          : Configure provider / 配置提供商")
+    console.print("  • [cyan]providers[/cyan]       : List providers / 列出提供商")
+    console.print("  • [cyan]use <name>[/cyan]       : Switch provider / 切换提供商")
+    console.print("  • [cyan]add-provider[/cyan]    : Add provider / 添加提供商")
+    console.print("  • [cyan]exit[/cyan]            : Exit / 退出")
+    console.print("-" * 50)
 
 def repl_loop():
     """Interactive Read-Eval-Print Loop"""
-    console.print(f"[bold green]Pulao AI-Ops[/bold green] - {t('cli_desc')}")
-    console.print("-" * 50)
-    console.print(f"[bold]Available Commands / 可用命令:[/bold]")
-    console.print("  • [cyan]deploy <instruction>[/cyan]: Deploy middleware (e.g., 'deploy redis') / 部署中间件")
-    console.print("  • [cyan]config[/cyan] or [cyan]setup[/cyan] : Configure current provider / 配置当前提供商")
-    console.print("  • [cyan]providers[/cyan]          : List all providers / 列出所有提供商")
-    console.print("  • [cyan]use <name>[/cyan]          : Switch provider / 切换提供商")
-    console.print("  • [cyan]add-provider <name>[/cyan] : Add new provider / 添加提供商")
-    console.print("  • [cyan]exit[/cyan] or [cyan]quit[/cyan]   : Exit Pulao / 退出")
-    console.print("-" * 50)
-    
     cfg = load_config()
     
     # Check config first
@@ -63,10 +92,19 @@ def repl_loop():
             return
 
     from src.ai import process_deployment
+    
+    # Initial header print
+    print_header(cfg)
 
     while True:
         try:
-            instruction = Prompt.ask("\n[bold cyan]>[/bold cyan] ")
+            # We don't clear screen every time to keep history visible, 
+            # but user asked for "persistent part". 
+            # Truly persistent header requires full TUI (Textual).
+            # For CLI REPL, we can't easily keep a top bar fixed while scrolling bottom.
+            # But we can make sure the prompt is always clean.
+            
+            instruction = Prompt.ask("\n[bold cyan]>[/bold cyan]")
             
             if not instruction.strip():
                 continue
@@ -81,6 +119,7 @@ def repl_loop():
             if cmd_name in ["config", "setup"]:
                 config()
                 cfg = load_config()
+                print_header(cfg) # Refresh header info
                 continue
 
             if cmd_name == "providers":
@@ -93,6 +132,7 @@ def repl_loop():
                     continue
                 use(cmd_parts[1])
                 cfg = load_config()
+                print_header(cfg) # Refresh header info
                 continue
                 
             if cmd_name == "add-provider":
