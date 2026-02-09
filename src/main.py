@@ -9,6 +9,7 @@ from src.config import load_config, save_config, add_provider as add_provider_to
 from src.i18n import t
 from src import __version__
 from src.ui import print_header
+from src.system_ops import execute_shell_command
 from typing import Optional
 import sys
 import io
@@ -91,6 +92,13 @@ def repl_loop():
             if not instruction.strip():
                 continue
             
+            # Check for shell execution prefix '!'
+            if instruction.strip().startswith("!"):
+                cmd = instruction.strip()[1:].strip()
+                if cmd:
+                    execute_shell_command(cmd)
+                continue
+
             cmd_parts = instruction.strip().split()
             cmd_name = cmd_parts[0].lower()
             

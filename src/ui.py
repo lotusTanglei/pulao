@@ -69,6 +69,7 @@ def print_header(cfg):
     
     # Add all commands
     commands = [
+        ("! <command>", "Execute shell command (e.g., '!ls') / 执行系统命令"),
         ("deploy <instruction>", "Deploy middleware (e.g., 'deploy redis') / 部署中间件"),
         ("config / setup", "Configure provider / 配置提供商"),
         ("providers", "List all providers / 列出所有提供商"),
