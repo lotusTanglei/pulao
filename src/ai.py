@@ -134,6 +134,10 @@ def process_deployment(instruction: str, config: dict):
                 console.print(f"[red]Unknown response type: {result.get('type')}[/red]")
                 break
                 
+        except KeyboardInterrupt:
+            console.print(f"[yellow]{t('request_cancelled')}[/yellow]")
+            return
+
         except Exception as e:
             console.print(f"[bold red]{t('ai_error')}[/bold red] {e}")
             raise

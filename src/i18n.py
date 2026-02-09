@@ -49,6 +49,7 @@ TRANSLATIONS = {
         "error_executing_command": "❌ Error executing command:",
         "proposed_command": "\n💻 Proposed Command:",
         "confirm_execute": "🚀 Do you want to execute this command?",
+        "request_cancelled": "\n⚠️ Request cancelled by user.",
     },
     "zh": {
         "config_title": "🔧 AI-Ops 配置",
@@ -97,6 +98,7 @@ TRANSLATIONS = {
         "error_executing_command": "❌ 执行命令时出错:",
         "proposed_command": "\n💻 建议执行的命令:",
         "confirm_execute": "🚀 是否执行此命令?",
+        "request_cancelled": "\n⚠️ 用户已取消请求。",
     }
 }
 
