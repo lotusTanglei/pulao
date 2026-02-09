@@ -36,7 +36,7 @@ curl -L https://gitee.com/lotus-ian-tanglei/pulao/raw/main/install.sh | bash
 ```bash
 $ pulao
 
-Pulao AI-Ops - AI-Ops: Natural Language Middleware Deployment Tool
+Pulao AI-Ops - Natural Language Middleware Deployment Tool  
 --------------------------------------------------
 Available Commands / 可用命令:
   • deploy <instruction>: Deploy middleware (e.g., 'deploy redis') / 部署中间件
