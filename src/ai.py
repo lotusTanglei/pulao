@@ -10,7 +10,12 @@ from src.i18n import t
 
 console = Console()
 
+# Global chat history
+_CHAT_HISTORY = []
+
 def process_deployment(instruction: str, config: dict):
+    global _CHAT_HISTORY
+    
     base_url = config["base_url"]
     if base_url.endswith("/chat/completions"):
         base_url = base_url.replace("/chat/completions", "")
@@ -24,10 +29,18 @@ def process_deployment(instruction: str, config: dict):
     current_lang = config.get("language", "en")
     system_prompt = get_system_prompt(current_lang)
     
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": instruction}
-    ]
+    # Initialize history if empty
+    if not _CHAT_HISTORY:
+        _CHAT_HISTORY = [{"role": "system", "content": system_prompt}]
+    else:
+        # Update system prompt in case system info changed
+        _CHAT_HISTORY[0] = {"role": "system", "content": system_prompt}
+
+    # Add current user instruction
+    _CHAT_HISTORY.append({"role": "user", "content": instruction})
+    
+    # Use a copy for current turn loop to avoid duplicating history on retry
+    messages = _CHAT_HISTORY.copy()
     
     console.print(f"[dim]{t('sending_request')}[/dim]")
     
@@ -61,13 +74,24 @@ def process_deployment(instruction: str, config: dict):
                 if not user_response.strip():
                     user_response = "Please decide the best defaults for me."
                 
-                # Append to history
-                messages.append({"role": "assistant", "content": content})
-                messages.append({"role": "user", "content": user_response})
+                # Append to current loop messages AND global history
+                assistant_msg = {"role": "assistant", "content": content}
+                user_msg = {"role": "user", "content": user_response}
+                
+                messages.append(assistant_msg)
+                messages.append(user_msg)
+                
+                _CHAT_HISTORY.append(assistant_msg)
+                _CHAT_HISTORY.append(user_msg)
+                
                 console.print(f"[dim]{t('sending_request')}[/dim]")
                 continue
                 
             elif result.get("type") == "plan":
+                # ... (existing plan logic)
+                # Add successful result to history
+                _CHAT_HISTORY.append({"role": "assistant", "content": content})
+                
                 yaml_content = result["content"]
                 # Clean up if markdown blocks remain
                 if "```yaml" in yaml_content:
@@ -89,6 +113,9 @@ def process_deployment(instruction: str, config: dict):
                 break
 
             elif result.get("type") == "command":
+                # Add successful result to history
+                _CHAT_HISTORY.append({"role": "assistant", "content": content})
+                
                 cmd_content = result["content"]
                 
                 # Display the command
