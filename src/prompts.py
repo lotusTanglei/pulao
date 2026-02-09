@@ -3,7 +3,10 @@ from pathlib import Path
 from typing import Dict
 from src.config import CONFIG_DIR
 
-PROMPTS_FILE = CONFIG_DIR / "prompts.yaml"
+# Use language-specific prompt file (e.g., prompts_en.yaml, prompts_zh.yaml)
+# This avoids overwriting prompts when switching languages.
+def get_prompts_file(lang: str) -> Path:
+    return CONFIG_DIR / f"prompts_{lang}.yaml"
 
 # Prompt templates by language
 PROMPT_TEMPLATES = {
@@ -93,41 +96,47 @@ def load_prompts(lang: str = "en") -> Dict:
         lang = "en"
         
     defaults = PROMPT_TEMPLATES[lang]
+    prompts_file = get_prompts_file(lang)
     
-    if PROMPTS_FILE.exists():
+    if prompts_file.exists():
         try:
-            with open(PROMPTS_FILE, "r", encoding="utf-8") as f:
+            with open(prompts_file, "r", encoding="utf-8") as f:
                 user_prompts = yaml.safe_load(f) or {}
-                # Check if user prompts match current language structure (simple heuristic)
-                # If user manually edited prompts.yaml, we prioritize their file content
-                # regardless of language setting, to respect user customization.
-                # However, if prompts.yaml was auto-generated for a different language, 
-                # we might want to regenerate it? 
-                # For simplicity: If prompts.yaml exists, use it. 
-                # If keys are missing, fill from defaults of current language.
                 final_prompts = defaults.copy()
                 final_prompts.update(user_prompts)
                 return final_prompts
         except Exception as e:
-            print(f"Warning: Failed to load prompts: {e}")
+            print(f"Warning: Failed to load prompts from {prompts_file}: {e}")
             return defaults
     else:
         # Create default prompts file for the specific language
-        save_prompts(defaults)
+        save_prompts(defaults, lang)
         return defaults
 
-def save_prompts(prompts: Dict):
+def save_prompts(prompts: Dict, lang: str):
     """Save prompts to file."""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    with open(PROMPTS_FILE, "w", encoding="utf-8") as f:
+    prompts_file = get_prompts_file(lang)
+    with open(prompts_file, "w", encoding="utf-8") as f:
         yaml.dump(prompts, f, allow_unicode=True, default_flow_style=False)
 
 def get_system_prompt(lang: str = "en") -> str:
     """Generate the full system prompt based on language."""
-    prompts = load_prompts()
+    prompts = load_prompts(lang)
     
     # Get clarification rules based on language
-    clarification_rules = prompts["clarification_rules"].get(lang, prompts["clarification_rules"]["en"])
+    # Note: PROMPT_TEMPLATES structure puts clarification_rules inside 'zh' or 'en' keys
+    # But when loaded into 'prompts' dict, it might be nested or flattened depending on template structure.
+    # In our template: 
+    # "zh": { ..., "clarification_rules": { "zh": "..." } }
+    # So prompts["clarification_rules"] is a dict.
+    
+    clarification_rules_dict = prompts.get("clarification_rules", {})
+    if isinstance(clarification_rules_dict, str):
+         # Handle legacy case where it might be a string
+         clarification_rules = clarification_rules_dict
+    else:
+         clarification_rules = clarification_rules_dict.get(lang, clarification_rules_dict.get("en", ""))
     
     full_prompt = f"""
 {prompts['role_definition']}
