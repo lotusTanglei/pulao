@@ -86,6 +86,12 @@ def print_header(cfg):
     console.print("  • [cyan]exit[/cyan]            : Exit / 退出")
     console.print("-" * 50)
 
+from prompt_toolkit import PromptSession
+from prompt_toolkit.styles import Style
+from prompt_toolkit.formatted_text import HTML
+
+# ... (imports)
+
 def repl_loop():
     """Interactive Read-Eval-Print Loop"""
     cfg = load_config()
@@ -104,15 +110,29 @@ def repl_loop():
     # Initial header print
     print_header(cfg)
 
+    # Setup prompt_toolkit session
+    style = Style.from_dict({
+        'bottom-toolbar': '#aaaaaa bg:#333333',
+        'prompt': 'ansicyan bold',
+    })
+    
+    def get_bottom_toolbar():
+        provider = cfg.get("current_provider", "default")
+        model = cfg.get("model", "unknown")
+        return HTML(f' <b>Provider:</b> {provider} | <b>Model:</b> {model} | <b>Exit:</b> Ctrl+D ')
+
+    session = PromptSession(style=style)
+
     while True:
         try:
             # We don't clear screen every time to keep history visible, 
             # but user asked for "persistent part". 
-            # Truly persistent header requires full TUI (Textual).
-            # For CLI REPL, we can't easily keep a top bar fixed while scrolling bottom.
-            # But we can make sure the prompt is always clean.
             
-            instruction = Prompt.ask("\n[bold cyan]>[/bold cyan]")
+            # Use prompt_toolkit for input
+            instruction = session.prompt(
+                HTML('<b>&gt;</b> '), 
+                bottom_toolbar=get_bottom_toolbar
+            )
             
             if not instruction.strip():
                 continue
@@ -158,6 +178,8 @@ def repl_loop():
                 console.print(f"[bold red]{t('error_prefix')}[/bold red] {str(e)}")
                 
         except KeyboardInterrupt:
+            continue # Just clear line on Ctrl+C
+        except EOFError:
             console.print("\nBye!")
             break
         except Exception as e:

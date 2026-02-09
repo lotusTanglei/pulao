@@ -4,5 +4,6 @@ docker
 openai
 pyyaml
 jinja2
+prompt_toolkit
 gnureadline; sys_platform == 'darwin'
 
