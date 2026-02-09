@@ -27,6 +27,14 @@ load_config()
 app = typer.Typer(help=t("cli_desc"), invoke_without_command=True)
 console = Console()
 
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context):
+    """
+    Pulao: AI-Powered DevOps Assistant
+    """
+    if ctx.invoked_subcommand is None:
+        repl_loop()
+
 def get_layout(config):
     """Generate the layout for the persistent UI."""
     layout = Layout()
