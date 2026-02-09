@@ -13,8 +13,8 @@ DEFAULT_CONFIG = {
     "providers": {
         "default": {
             "api_key": "",
-            "base_url": "https://api.openai.com/v1",
-            "model": "gpt-4o",
+            "base_url": "https://api.deepseek.com",
+            "model": "deepseek-reasoner",
         }
     },
     "language": "en"
