@@ -8,6 +8,7 @@ from rich.text import Text
 from src.config import load_config, save_config, add_provider as add_provider_to_config, switch_provider
 from src.i18n import t
 from src import __version__
+from src.ui import print_header
 from typing import Optional
 import sys
 import io
@@ -36,56 +37,8 @@ def main(ctx: typer.Context):
     if ctx.invoked_subcommand is None:
         repl_loop()
 
-def get_layout(config):
-    """Generate the layout for the persistent UI."""
-    layout = Layout()
-    layout.split(
-        Layout(name="header", size=3),
-        Layout(name="body")
-    )
-    
-    # Create header content
-    app_name = Text(f"Pulao AI-Ops v{__version__}", style="bold green")
-    desc = Text(f" - {t('cli_desc')}")
-    
-    current_provider = config.get("current_provider", "default")
-    model = config.get("model", "unknown")
-    status = Text(f" | Provider: {current_provider} | Model: {model}", style="dim cyan")
-    
-    header_text = Text.assemble(app_name, desc, status)
-    layout["header"].update(Panel(header_text, style="blue"))
-    
-    # Body is just a placeholder, as we print to console directly below the Live context usually.
-    # However, 'Live' takes over the screen. For a REPL, 'Live' is tricky because input() blocks.
-    # A better approach for a simple sticky header in a blocking REPL is to just reprint it 
-    # or use a full TUI lib like textual. 
-    # Given the constraints and current architecture, a true sticky header while using blocking input() 
-    # is difficult without clearing screen.
-    # Let's try a simpler approach: Clear screen and reprint header on every loop iteration.
-    return layout
+# Removed legacy get_layout and print_header functions as they are replaced by src.ui
 
-def print_header(cfg):
-    """Print a sticky-like header by clearing screen."""
-    console.clear()
-    
-    current_provider = cfg.get("current_provider", "default")
-    model = cfg.get("model", "unknown")
-    
-    console.print(Panel(
-        f"[bold green]Pulao AI-Ops[/bold green] v{__version__} - {t('cli_desc')}\n"
-        f"[dim]Provider: [cyan]{current_provider}[/cyan] | Model: [cyan]{model}[/cyan][/dim]",
-        style="blue",
-        expand=False
-    ))
-    
-    console.print(f"[bold]Available Commands / 可用命令:[/bold]")
-    console.print("  • [cyan]deploy <instruction>[/cyan]: Deploy middleware / 部署中间件")
-    console.print("  • [cyan]config[/cyan]          : Configure provider / 配置提供商")
-    console.print("  • [cyan]providers[/cyan]       : List providers / 列出提供商")
-    console.print("  • [cyan]use <name>[/cyan]       : Switch provider / 切换提供商")
-    console.print("  • [cyan]add-provider[/cyan]    : Add provider / 添加提供商")
-    console.print("  • [cyan]exit[/cyan]            : Exit / 退出")
-    console.print("-" * 50)
 
 from prompt_toolkit import PromptSession
 from prompt_toolkit.styles import Style
