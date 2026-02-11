@@ -16,22 +16,30 @@ BUILTIN_LIBRARY_DIR = Path(__file__).parent / "library"
 REPO_ZH = "https://gitee.com/LOTUStudio/posehub.git"
 REPO_EN = "https://github.com/lotusTanglei/posehub.git"
 
+from src.config import load_config
+
 class LibraryManager:
     """Manages the Docker Compose template library (Built-in + User updated)."""
     
     @staticmethod
     def _get_repo_url() -> str:
-        """Get repository URL based on system locale."""
+        """Get repository URL based on configuration or system locale."""
         try:
-            # Check environment variable first
-            lang = os.environ.get('LANG', '')
+            # 1. Check config file (Global or User)
+            cfg = load_config()
+            lang = cfg.get("language", "")
+            
+            # 2. Fallback to Environment Variable
             if not lang:
-                # Fallback to locale module
+                lang = os.environ.get('LANG', '')
+            
+            # 3. Fallback to System Locale
+            if not lang:
                 lang_code, _ = locale.getdefaultlocale()
                 if lang_code:
                     lang = lang_code
             
-            if lang and 'zh' in lang.lower():
+            if lang and ('zh' in lang.lower() or 'cn' in lang.lower()):
                 return REPO_ZH
         except Exception:
             pass
@@ -92,6 +100,28 @@ class LibraryManager:
             console.print(f"[dim]Templates stored in: {USER_LIBRARY_DIR}[/dim]")
             
         except subprocess.CalledProcessError as e:
+            # If GitHub failed, try Gitee fallback
+            if repo_url == REPO_EN:
+                console.print(f"[bold red]Failed to update from GitHub. Trying Gitee fallback...[/bold red]")
+                try:
+                    # Clean up partial clone if any
+                    if USER_LIBRARY_DIR.exists() and not (USER_LIBRARY_DIR / ".git").exists():
+                         shutil.rmtree(str(USER_LIBRARY_DIR))
+                    
+                    # If directory exists (failed clone), we might need to clean it
+                    if USER_LIBRARY_DIR.exists():
+                        # Check if it's empty or failed
+                        if not os.listdir(str(USER_LIBRARY_DIR)):
+                            os.rmdir(str(USER_LIBRARY_DIR))
+                    
+                    # Try cloning Gitee
+                    console.print(f"[dim]Cloning from {REPO_ZH}...[/dim]")
+                    subprocess.run(["git", "clone", "--depth", "1", REPO_ZH, str(USER_LIBRARY_DIR)], check=True)
+                    console.print("[bold green]Library updated successfully (using Gitee mirror)![/bold green]")
+                    return
+                except Exception as e2:
+                    console.print(f"[bold red]Fallback failed:[/bold red] {e2}")
+
             console.print(f"[bold red]Failed to update library:[/bold red] {e}")
         except Exception as e:
             console.print(f"[bold red]Error:[/bold red] {e}")
