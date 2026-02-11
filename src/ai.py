@@ -7,6 +7,7 @@ from src.docker_ops import deploy_compose
 from src.system_ops import execute_shell_command
 from src.prompts import get_system_prompt
 from src.i18n import t
+from src.library_manager import LibraryManager
 
 console = Console()
 
@@ -37,7 +38,23 @@ def process_deployment(instruction: str, config: dict):
         _CHAT_HISTORY[0] = {"role": "system", "content": system_prompt}
 
     # Add current user instruction
-    _CHAT_HISTORY.append({"role": "user", "content": instruction})
+    
+    # Check for available templates based on user instruction
+    # A simple keyword check to see if we should inject a template
+    template_content = None
+    # Heuristic: if user input contains a service name that we have in library
+    for tpl_name in LibraryManager.list_templates():
+        if tpl_name in instruction.lower():
+            template_content = LibraryManager.get_template(tpl_name)
+            if template_content:
+                console.print(f"[dim]Using built-in template for: {tpl_name}[/dim]")
+                break
+    
+    final_instruction = instruction
+    if template_content:
+        final_instruction += f"\n\n[Template Context]\nHere is a reference docker-compose.yml for {tpl_name}. Please adapt it:\n```yaml\n{template_content}\n```"
+    
+    _CHAT_HISTORY.append({"role": "user", "content": final_instruction})
     
     # Use a copy for current turn loop to avoid duplicating history on retry
     messages = _CHAT_HISTORY.copy()
@@ -101,13 +118,20 @@ def process_deployment(instruction: str, config: dict):
                         yaml_content = match.group(1)
 
                 # Display the plan
+                suggested_name = result.get("project_name", "default")
                 console.print(f"[bold]{t('proposed_config')}[/bold]")
                 syntax = Syntax(yaml_content, "yaml", theme="monokai", line_numbers=True)
                 console.print(syntax)
                 console.print("")
                 
+                # Ask user to confirm/modify project name
+                project_name = Prompt.ask(
+                    t("confirm_project_name", default=suggested_name), 
+                    default=suggested_name
+                )
+                
                 if Confirm.ask(t("confirm_deploy")):
-                    deploy_compose(yaml_content)
+                    deploy_compose(yaml_content, project_name=project_name)
                 else:
                     console.print(f"[yellow]{t('deploy_cancelled')}[/yellow]")
                 break

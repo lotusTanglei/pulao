@@ -75,6 +75,7 @@ def print_header(cfg):
         ("providers", "List all providers / 列出所有提供商"),
         ("use <name>", "Switch provider / 切换提供商"),
         ("add-provider <name>", "Add new provider / 添加提供商"),
+        ("update-library", "Update template library from GitHub / 更新模板库"),
         ("exit / quit", "Exit Pulao / 退出")
     ]
     

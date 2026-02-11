@@ -50,6 +50,7 @@ TRANSLATIONS = {
         "proposed_command": "\n💻 Proposed Command:",
         "confirm_execute": "🚀 Do you want to execute this command?",
         "request_cancelled": "\n⚠️ Request cancelled by user.",
+        "confirm_project_name": "Project Name (Enter to use '{default}')",
     },
     "zh": {
         "config_title": "🔧 AI-Ops 配置",
@@ -99,6 +100,7 @@ TRANSLATIONS = {
         "proposed_command": "\n💻 建议执行的命令:",
         "confirm_execute": "🚀 是否执行此命令?",
         "request_cancelled": "\n⚠️ 用户已取消请求。",
+        "confirm_project_name": "确认项目名称 (回车使用 '{default}')",
     }
 }
 

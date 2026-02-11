@@ -13,7 +13,12 @@ def deploy_compose(yaml_content: str, project_name: str = "default"):
     Write YAML to a file and run docker-compose up.
     """
     # Create project directory
-    project_dir = DEPLOY_DIR / project_name
+    # Sanitize project name to be safe for directory usage
+    safe_name = "".join([c for c in project_name if c.isalnum() or c in "-_"]).strip()
+    if not safe_name:
+        safe_name = "default"
+        
+    project_dir = DEPLOY_DIR / safe_name
     project_dir.mkdir(parents=True, exist_ok=True)
     
     compose_file = project_dir / "docker-compose.yml"

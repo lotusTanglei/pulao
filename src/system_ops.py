@@ -24,12 +24,41 @@ def get_system_info() -> str:
     except:
         pass
 
-    # Docker Version
+    # Docker Version and Containers
     try:
         docker_ver = subprocess.check_output(["docker", "--version"], text=True).strip()
         info.append(f"Docker: {docker_ver}")
+        
+        # Check running containers
+        try:
+            containers = subprocess.check_output(
+                ["docker", "ps", "--format", "table {{.Names}}\t{{.Image}}\t{{.Ports}}"], 
+                text=True
+            ).strip()
+            if containers:
+                info.append("\n[Running Docker Containers]")
+                # Limit to first 10 lines to save tokens
+                lines = containers.split('\n')
+                if len(lines) > 10:
+                    info.append("\n".join(lines[:10]))
+                    info.append(f"... ({len(lines)-10} more)")
+                else:
+                    info.append(containers)
+        except:
+            pass
     except:
         info.append("Docker: Not detected")
+        
+    # Listening Ports (Basic check for common services)
+    try:
+        # Use lsof if available, fallback to netstat, or skip
+        # We try a safe lsof command
+        ports_output = subprocess.check_output("lsof -i -P -n | grep LISTEN | head -n 10", shell=True, text=True).strip()
+        if ports_output:
+            info.append("\n[Listening Ports (Host)]")
+            info.append(ports_output)
+    except:
+        pass
         
     return "\n".join(info)
 

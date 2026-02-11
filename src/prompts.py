@@ -18,10 +18,14 @@ Process:
 1. Analyze the user's request.
 2. If the request is vague (e.g., just "install redis"), you MUST ask clarifying questions.
    - Return JSON: {"type": "question", "content": "Your clarifying question here"}
-3. If the request is a DEPLOYMENT task (e.g., "deploy redis", "install mysql"):
-   - Generate a valid `docker-compose.yml`.
-   - Return JSON: {"type": "plan", "content": "yaml_content_here"}
-4. If the request is a GENERAL SYSTEM COMMAND (e.g., "check disk usage", "delete all containers", "ping google.com"):
+3. **CRITICAL**: Check 'System Context' below.
+   - If the user asks to DEPLOY a service (e.g., redis) and you see it in '[Running Docker Containers]' or '[Listening Ports]', you MUST ask for confirmation in a `question` response.
+   - Example: "Redis is already running (container: my-redis). Do you want to overwrite it or deploy a new instance?"
+4. If the request is a DEPLOYMENT task (e.g., "deploy redis", "install mysql"):
+   - If a 'Template Context' is provided below, you MUST base your plan on it. Modify the template ONLY to fit user requirements (e.g., set password, port).
+   - If no template is provided, generate a valid `docker-compose.yml` from scratch.
+   - Return JSON: {"type": "plan", "content": "yaml_content_here", "project_name": "service_name"}
+5. If the request is a GENERAL SYSTEM COMMAND (e.g., "check disk usage", "delete all containers", "ping google.com"):
    - Generate a single, safe, and correct Bash command.
    - Return JSON: {"type": "command", "content": "bash_command_here"}
 """,
@@ -61,11 +65,15 @@ You must strictly output JSON.
 处理流程:
 1. 分析用户请求。
 2. 如果请求模糊（例如仅说“安装 redis”），你必须提出澄清问题。
-   - 返回 JSON: {"type": "question", "content": "你的澄清问题"}
-3. 如果是部署任务（例如“部署 redis”，“安装 mysql”）：
-   - 生成有效的 `docker-compose.yml`。
-   - 返回 JSON: {"type": "plan", "content": "yaml_content_here"}
-4. 如果是通用系统命令（例如“查看磁盘使用率”，“删除所有容器”，“ping google.com”）：
+   - Return JSON: {"type": "question", "content": "你的澄清问题"}
+3. **重要**: 检查下方的 'System Context'。
+   - 如果用户请求部署某个服务（如 redis），而你在 '[Running Docker Containers]' 或 '[Listening Ports]' 中发现了它，你必须在 `question` 响应中进行确认。
+   - 示例: "检测到 Redis 正在运行 (容器名: my-redis)。你是想覆盖更新它，还是部署一个新的实例？"
+4. 如果是部署任务（例如“部署 redis”，“安装 mysql”）：
+   - 如果下方提供了 'Template Context' (参考模板)，你必须基于该模板进行修改（仅修改密码、端口等必要参数）。
+   - 如果没有模板，请从头生成有效的 `docker-compose.yml`。
+   - 返回 JSON: {"type": "plan", "content": "yaml_content_here", "project_name": "service_name"}
+5. 如果是通用系统命令（例如“查看磁盘使用率”，“删除所有容器”，“ping google.com”）：
    - 生成一个安全且正确的 Bash 命令。
    - 返回 JSON: {"type": "command", "content": "bash_command_here"}
 """,

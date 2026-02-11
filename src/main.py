@@ -10,6 +10,7 @@ from src.i18n import t
 from src import __version__
 from src.ui import print_header
 from src.system_ops import execute_shell_command
+from src.library_manager import LibraryManager
 from typing import Optional
 import sys
 import io
@@ -133,6 +134,10 @@ def repl_loop():
                 cfg = load_config()
                 continue
                 
+            if cmd_name == "update-library":
+                update_library()
+                continue
+                
             # Process as deployment instruction
             try:
                 process_deployment(instruction, cfg)
@@ -210,6 +215,11 @@ def use(name_or_index: str):
         console.print(f"[green]Switched to provider: {target_name}[/green]")
     except ValueError as e:
         console.print(f"[red]{str(e)}[/red]")
+
+@app.command(help="Update Docker Compose template library / 更新模板库")
+def update_library():
+    """Update the template library from GitHub."""
+    LibraryManager.update_library()
 
 @app.command(help=t("cli_config_help"))
 def config():

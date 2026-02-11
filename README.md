@@ -1,17 +1,34 @@
 # Pulao: AI-Powered DevOps Assistant
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-Pulao 是一个基于 AI 的智能运维工具，旨在帮助运维人员通过自然语言完成 Docker 中间件部署和系统日常运维。它不仅仅是一个简单的命令生成器，更是一个懂你意图、安全可控的运维伙伴。
+Pulao 是一个基于 AI 的智能运维工具，旨在帮助运维人员通过自然语言完成 Docker 中间件部署和系统日常运维。它不仅仅是一个简单的命令生成器，更是一个**懂模板、懂环境、安全可控**的运维伙伴。
 
 ## ✨ 核心特性 (Features)
 
-*   **🧠 智能部署**: 只需要说 "部署一个高可用 Redis 集群"，AI 自动生成 Docker Compose 配置。
-*   **🛠️ 系统运维**: 支持自然语言执行 Shell 命令，如 "查看系统负载"、"清理 Docker 缓存"。
-*   **🗣️ 交互式澄清**: 当需求模糊时（如仅说“安装 MySQL”），AI 会主动询问版本、密码等关键信息。
+*   **🧩 智能模板适配 (Smart Templates)**: 
+    *   拒绝 AI 瞎编配置！Pulao 能够自动从 GitHub (awesome-compose) 拉取经过验证的官方模板。
+    *   当你要求部署 "Redis" 时，AI 会基于官方最佳实践模板进行微调（如修改密码、端口），确保部署的稳定性和规范性。
+    *   支持 `update-library` 命令一键更新本地模板库。
+
+*   **🛡️ 环境感知 (Context Aware)**:
+    *   在部署前自动扫描本机状态（运行中的容器、监听端口）。
+    *   **智能冲突检测**：如果发现 Redis 已经在运行，AI 会主动警告并询问：“是否覆盖更新？” 而不是盲目执行。
+
+*   **🧠 智能部署 (AI Deployment)**:
+    *   只需要说 "部署一个高可用 Redis 集群"，AI 自动生成 Docker Compose 配置。
+    *   支持**交互式命名**：在部署前确认项目名称（如 `my-redis-prod`），避免目录覆盖。
+    *   多项目隔离管理，自动归档于 `~/.pulao/deployments/`。
+
+*   **⚡ 本地 Shell 直通 (Direct Shell)**:
+    *   无需退出 CLI，使用 `!` 前缀即可直接执行系统命令。
+    *   示例：`!docker ps` 或 `!ls -la`。
+
+*   **🛠️ 系统运维 (System Ops)**:
+    *   支持自然语言执行复杂运维任务，如 "清理所有退出的容器"、"查看系统负载"。
+    *   所有敏感操作执行前均需二次确认。
+
 *   **🔄 多模型切换**: 支持配置多个 AI 提供商 (OpenAI, DeepSeek, Azure 等) 并快速切换。
-*   **🎨 提示词管理**: 支持自定义 AI 的 System Prompt，定制专属的运维风格。
-*   **⚡ 极速体验**: 针对国内网络环境优化 Docker 镜像加速，一键安装。
 
 ## 🚀 快速开始 (Quick Start)
 
@@ -33,82 +50,72 @@ curl -L https://gitee.com/lotus-ian-tanglei/pulao/raw/main/install.sh | bash
 
 安装完成后，直接输入 `pulao` 进入交互式 CLI：
 
-```bash
-$ pulao
+```text
+  ____        _             
+ |  _ \ _   _| | __ _  ___  
+ | |_) | | | | |/ _` |/ _ \   Version  : v1.0.0
+ |  __/| |_| | | (_| | (_) |  Provider : deepseek
+ |_|    \__,_|_|\__,_|\___/   Model    : deepseek-chat
 
-Pulao AI-Ops - Natural Language Middleware Deployment Tool  
---------------------------------------------------
 Available Commands / 可用命令:
-  • deploy <instruction>: Deploy middleware (e.g., 'deploy redis') / 部署中间件
-  • config or setup : Configure current provider / 配置当前提供商
-  • providers          : List all providers / 列出所有提供商
-  • use <name>          : Switch provider / 切换提供商
-  • add-provider <name> : Add new provider / 添加提供商
-  • exit or quit   : Exit Pulao / 退出
---------------------------------------------------
+  • ! <command>           : Execute shell command (e.g., '!ls') / 执行系统命令
+  • deploy <instruction>  : Deploy middleware / 部署中间件
+  • update-library        : Update template library / 更新模板库
+  • config                : Configure provider / 配置提供商
+  • providers             : List providers / 列出提供商
+  ...
+```
 
-> 部署一个高可用的 Redis 哨兵集群
-> 查看当前磁盘使用率
+### 3. 常用场景
+
+#### 场景 A: 部署中间件 (基于模板)
+```bash
+> 部署一个 Redis，密码设置为 123456
+
+[System] Using built-in template for: redis
+[AI] 正在为您适配 Redis 官方模板...
+[Plan] 生成配置如下...
+[Confirm] 确认项目名称 (Project Name): my-redis
+[Result] 部署成功！
+```
+
+#### 场景 B: 更新模板库
+```bash
+> update-library
+Updating template library from https://github.com/docker/awesome-compose.git...
+Library updated successfully!
+```
+
+#### 场景 C: 执行系统命令
+```bash
+> !docker ps
+CONTAINER ID   IMAGE     PORTS
+a1b2c3d4e5f6   redis     0.0.0.0:6379->6379/tcp
 ```
 
 ## 🎮 进阶功能 (Advanced Features)
 
 ### 1. 多模型管理 (Multi-Provider)
 
-Pulao 支持配置多个 AI 模型（例如同时使用 OpenAI 和 DeepSeek），并在它们之间快速切换，方便对比效果或作为备用方案。
+Pulao 支持配置多个 AI 模型并在它们之间快速切换。
 
 ```bash
 # 添加新的提供商
 > add-provider deepseek
 
-# 列出所有提供商
-> providers
-  1. default
-  2. deepseek * (current)
-
-# 切换提供商 (通过名称或编号)
-> use 1
-Switched to provider: default
+# 切换提供商
+> use deepseek
 ```
 
-### 2. 系统运维指令 (System Ops)
+### 2. 提示词自定义 (Prompt Customization)
 
-除了部署中间件，你还可以让 Pulao 帮你执行日常 Linux 运维任务。所有命令在执行前都会展示并要求确认，确保安全。
-
-**示例指令：**
-*   **查询**: "查看当前运行的 Docker 容器" -> `docker ps`
-*   **清理**: "删除所有 Exited 状态的容器" -> `docker container prune -f`
-*   **监控**: "查看最近 5 分钟的系统负载" -> `uptime`
-*   **网络**: "查看 8080 端口被谁占用了" -> `lsof -i :8080`
-
-### 3. 提示词自定义 (Prompt Customization)
-
-Pulao 允许你自定义 AI 的行为规则。配置文件位于 `~/.pulao/prompts.yaml`。
-
-你可以修改此文件来：
-*   调整 AI 的语气或角色设定。
-*   修改澄清提问的规则（例如强制要求询问特定参数）。
-*   定制 Docker Compose 的生成模板要求。
-
-**默认配置示例 (`~/.pulao/prompts.yaml`)**:
-```yaml
-clarification_rules:
-  zh: |
-    澄清提问规则:
-    1. 你必须使用**中文**进行提问。
-    2. 仅确认核心要素：软件版本、密码、持久化、端口。
-...
-```
+配置文件位于 `~/.pulao/prompts.yaml`。你可以修改此文件来定制 AI 的语气或澄清提问的规则。
 
 ## 🛠️ 开发指南 (Development)
 
 ```bash
-# 1. 克隆项目 (GitHub)
-git clone https://github.com/lotusTanglei/pulao.git
-
-# 或者 Gitee
+# 1. 克隆项目
 git clone https://gitee.com/lotus-ian-tanglei/pulao.git
-
 cd pulao
 
 # 2. 安装依赖
