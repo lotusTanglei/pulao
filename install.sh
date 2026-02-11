@@ -129,7 +129,7 @@ fi
 if ! command -v docker &> /dev/null; then
     echo "$MSG_DOCKER_INSTALL"
     # Try using Aliyun mirror for China users or standard get.docker.com
-    if [ "$LANG" == "zh" ]; then
+    if [ "$INSTALL_LANG" == "zh" ]; then
         curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
     else
         curl -fsSL https://get.docker.com -o get-docker.sh
@@ -142,7 +142,7 @@ else
 fi
 
 # 4. Configure Docker Registry Mirrors (Always run for ZH users)
-if [ "$LANG" == "zh" ]; then
+if [ "$INSTALL_LANG" == "zh" ]; then
     echo "🔧 Configuring Docker Registry Mirrors..."
     mkdir -p /etc/docker
     cat > /etc/docker/daemon.json <<EOF
@@ -176,7 +176,7 @@ mkdir -p "$INSTALL_DIR"
 cp -r ./* "$INSTALL_DIR/"
 
 # 5. Save Global Language Config
-echo "language: $LANG" > "$INSTALL_DIR/global_config.yaml"
+echo "language: $INSTALL_LANG" > "$INSTALL_DIR/global_config.yaml"
 
 # 6. Setup Python Virtual Environment
 echo "$MSG_VENV"
@@ -198,6 +198,20 @@ python3 -m src.main "\$@"
 EOF
 
 chmod +x "/usr/local/bin/$BIN_NAME"
+
+# 9. Initialize Template Library
+if [ "$INSTALL_LANG" == "zh" ]; then
+    echo "📚 正在初始化模板库..."
+    # Force zh_CN for the python script to pick up Gitee if system locale is not zh
+    # But only if LANG is not already zh
+    export LANG="zh_CN.UTF-8"
+else
+    echo "📚 Initializing template library..."
+fi
+
+# Run update-library command using the venv python
+# We ignore errors here so installation can finish even if network fails
+"$INSTALL_DIR/venv/bin/python3" -m src.main update-library || true
 
 echo "$MSG_DONE"
 echo "$MSG_USAGE"
