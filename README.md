@@ -43,7 +43,7 @@ curl -L https://raw.githubusercontent.com/lotusTanglei/pulao/main/install.sh | b
 
 Gitee (国内加速):
 ```bash
-curl -L https://gitee.com/lotus-ian-tanglei/pulao/raw/main/install.sh | bash
+curl -L https://gitee.com/LOTUStudio/pulao/raw/main/install.sh | bash
 ```
 
 ### 2. 基础使用 (Basic Usage)
@@ -115,7 +115,7 @@ Pulao 支持配置多个 AI 模型并在它们之间快速切换。
 
 ```bash
 # 1. 克隆项目
-git clone https://gitee.com/lotus-ian-tanglei/pulao.git
+git clone https://gitee.com/LOTUStudio/pulao.git
 cd pulao
 
 # 2. 安装依赖

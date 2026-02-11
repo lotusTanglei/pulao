@@ -36,7 +36,7 @@ fi
 
 if [ "$LANG_CHOICE" == "2" ]; then
     # Use Gitee for China users
-    REPO_URL="https://gitee.com/lotus-ian-tanglei/pulao/repository/archive/main.zip"
+    REPO_URL="https://gitee.com/LOTUStudio/pulao/repository/archive/main.zip"
     LANG="zh"
     MSG_START="🚀 开始安装 $APP_NAME..."
     MSG_ROOT="请以 root 身份运行 (sudo ./install.sh)"
@@ -98,11 +98,20 @@ if [ ! -f "requirements.txt" ] || [ ! -d "src" ]; then
 
     # Create temp dir
     TMP_DIR=$(mktemp -d)
-    curl -L -o "$TMP_DIR/source.zip" "$REPO_URL"
+    echo "⬇️ Downloading from: $REPO_URL"
+    if ! curl -f -L -o "$TMP_DIR/source.zip" "$REPO_URL"; then
+        echo "❌ Download failed! Please check your network or URL."
+        exit 1
+    fi
     
     # Unzip and move to current dir (which might be a temp execution dir)
     # We unzip to a specific location to avoid cluttering /root or wherever
-    unzip -q "$TMP_DIR/source.zip" -d "$TMP_DIR"
+    if ! unzip -q "$TMP_DIR/source.zip" -d "$TMP_DIR"; then
+        echo "❌ Unzip failed! The downloaded file might be corrupted or not a zip file."
+        echo "File content (first 10 lines):"
+        head -n 10 "$TMP_DIR/source.zip"
+        exit 1
+    fi
     
     # The zip usually contains a folder like pulao-main
     SOURCE_ROOT=$(find "$TMP_DIR" -maxdepth 1 -type d -name "pulao-*" | head -n 1)
