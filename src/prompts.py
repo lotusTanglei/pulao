@@ -46,7 +46,9 @@ The following is the real-time information of the Local Server and Cluster Nodes
 """
         },
         "output_format": """Output Format:
-Use Function Calling (Tools) for actions. Do NOT output raw JSON blocks.
+Use Function Calling (Tools) for actions. 
+If you need to ask a question to the user, just output the question as plain text. 
+**Do NOT output JSON blocks like {"type": "question"}.**
 """
     },
     
@@ -56,7 +58,7 @@ Use Function Calling (Tools) for actions. Do NOT output raw JSON blocks.
 
 处理流程:
 1. 分析用户请求。
-2. 如果请求模糊，请直接提问（不调用工具）。
+2. 如果请求模糊，请**直接用自然语言**提问（不要使用 JSON 格式）。
 3. **使用工具**: 你可以使用 `deploy_service`, `deploy_cluster_service`, `execute_command` 等工具。
    - 检查系统状态，使用 `execute_command`。
    - 部署服务，生成 YAML 并调用 `deploy_service` 或 `deploy_cluster_service`。
@@ -84,7 +86,9 @@ Use Function Calling (Tools) for actions. Do NOT output raw JSON blocks.
 """
         },
         "output_format": """输出格式:
-请使用函数调用 (Tools) 执行操作。**不要**输出原始 JSON 代码块。
+请使用函数调用 (Tools) 执行操作。
+如果需要向用户提问，请直接输出纯文本问题。
+**严禁输出 {"type": "question", ...} 这种 JSON 格式！**
 """
     }
 }

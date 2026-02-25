@@ -88,6 +88,34 @@ def clean_yaml_content(content: str) -> str:
             return match.group(1)
     return content
 
+def extract_json(content: str) -> Optional[Dict]:
+    """Fallback: Extract JSON from AI response if tool calls failed."""
+    try:
+        # First try direct parse
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+        
+    # Try finding JSON block
+    match = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(1))
+        except json.JSONDecodeError:
+            pass
+
+    # Try finding first { and last }
+    start = content.find('{')
+    end = content.rfind('}')
+    if start != -1 and end != -1:
+        json_str = content[start:end+1]
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            pass
+            
+    return None
+
 # Global session cache (simple approach for CLI REPL)
 _CURRENT_SESSION: Optional[AISession] = None
 
@@ -150,6 +178,19 @@ def process_deployment(instruction: str, config: dict):
 
             # If no tool calls, this is the final answer or a clarification question
             if not tool_calls:
+                # Fallback: Check if AI output legacy JSON format despite instructions
+                if content:
+                    legacy_json = extract_json(content)
+                    if legacy_json and isinstance(legacy_json, dict):
+                        msg_type = legacy_json.get("type")
+                        # If it's a question, print it nicely
+                        if msg_type == "question":
+                            console.print(f"\n[bold yellow]AI Question:[/bold yellow] {legacy_json.get('content')}")
+                            # We treat this as a final response for this turn, user needs to answer
+                            break
+                        # If it's a plan or command (legacy), warn user but try to handle?
+                        # Actually, for Agent mode, we prefer tools. But if model fails, maybe we can map legacy JSON to tool call?
+                        # For now, just break and show content.
                 break
             
             # Handle Tool Calls
