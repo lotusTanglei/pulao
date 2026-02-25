@@ -4,7 +4,15 @@ from pathlib import Path
 from typing import Optional, Dict
 from src.i18n import set_language
 
-CONFIG_DIR = Path.home() / ".pulao"
+# Use a safe config directory, fallback to temp if home is not writable
+try:
+    CONFIG_DIR = Path.home() / ".pulao"
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+except PermissionError:
+    import tempfile
+    CONFIG_DIR = Path(tempfile.gettempdir()) / "pulao"
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
 CONFIG_FILE = CONFIG_DIR / "config.yaml"
 GLOBAL_CONFIG_FILE = Path("/opt/pulao/global_config.yaml")
 

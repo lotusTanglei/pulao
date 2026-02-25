@@ -51,6 +51,14 @@ TRANSLATIONS = {
         "confirm_execute": "🚀 Do you want to execute this command?",
         "request_cancelled": "\n⚠️ Request cancelled by user.",
         "confirm_project_name": "Project Name (Enter to use '{default}')",
+        "node_online": "✅ Node is Online.",
+        "node_auth_failed": "⚠️ Authentication Failed.",
+        "auth_failed_guide": """
+⚠️ Unable to connect to node '{name}'.
+Please manually configure SSH trust on your control machine:
+  ssh-copy-id -i ~/.ssh/id_rsa.pub {user}@{host}
+""",
+        "deploy_aborted_auth_fail": "❌ Deployment aborted: Authentication failed for some nodes.",
     },
     "zh": {
         "config_title": "🔧 AI-Ops 配置",
@@ -101,6 +109,14 @@ TRANSLATIONS = {
         "confirm_execute": "🚀 是否执行此命令?",
         "request_cancelled": "\n⚠️ 用户已取消请求。",
         "confirm_project_name": "确认项目名称 (回车使用 '{default}')",
+        "node_online": "✅ 节点在线。",
+        "node_auth_failed": "⚠️ 认证失败。",
+        "auth_failed_guide": """
+⚠️ 无法连接到节点 '{name}'。
+请在控制端手动配置免密登录：
+  ssh-copy-id -i ~/.ssh/id_rsa.pub {user}@{host}
+""",
+        "deploy_aborted_auth_fail": "❌ 部署已终止：部分节点认证失败。",
     }
 }
 

@@ -11,8 +11,13 @@ from src import __version__
 from src.ui import print_header
 from src.system_ops import execute_shell_command
 from src.library_manager import LibraryManager
+from src.cluster import ClusterManager
+from src.logger import setup_logging
 from typing import Optional
 import sys
+
+# Setup logging early
+logger = setup_logging()
 import io
 
 # ... (rest of imports and setup)
@@ -263,6 +268,44 @@ def deploy(instruction: Optional[str] = typer.Argument(None)):
     except Exception as e:
         console.print(f"[bold red]{t('error_prefix')}[/bold red] {str(e)}")
         raise typer.Exit(code=1)
+
+# --- Cluster Management Commands ---
+cluster_app = typer.Typer(help="Manage clusters / 集群管理")
+app.add_typer(cluster_app, name="cluster")
+
+@cluster_app.command(name="list")
+def list_clusters():
+    """List all clusters."""
+    ClusterManager.list_clusters()
+
+@cluster_app.command(name="create")
+def create_cluster(name: str):
+    """Create a new cluster."""
+    ClusterManager.create_cluster(name)
+
+@cluster_app.command(name="use")
+def use_cluster(name: str):
+    """Switch current cluster."""
+    ClusterManager.switch_cluster(name)
+
+# --- Node Management Commands ---
+node_app = typer.Typer(help="Manage nodes in current cluster / 节点管理")
+app.add_typer(node_app, name="node")
+
+@node_app.command(name="list")
+def list_nodes():
+    """List nodes in current cluster."""
+    ClusterManager.list_nodes()
+
+@node_app.command(name="add")
+def add_node(name: str, host: str, user: str, role: str = "worker", key_path: str = ""):
+    """Add a node to current cluster."""
+    ClusterManager.add_node(name, host, user, role, key_path)
+
+@node_app.command(name="remove")
+def remove_node(name: str):
+    """Remove a node from current cluster."""
+    ClusterManager.remove_node(name)
 
 if __name__ == "__main__":
     app()

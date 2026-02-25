@@ -16,11 +16,27 @@ BUILTIN_LIBRARY_DIR = Path(__file__).parent / "library"
 REPO_ZH = "https://gitee.com/LOTUStudio/posehub.git"
 REPO_EN = "https://github.com/lotusTanglei/posehub.git"
 
-from src.config import load_config
+from src.config import load_config, CONFIG_DIR
+import os
+import locale
+import shutil
+import subprocess
+from pathlib import Path
+from rich.console import Console
 
 class LibraryManager:
     """Manages the Docker Compose template library (Built-in + User updated)."""
     
+    # ... (existing code) ...
+
+    @staticmethod
+    def _get_library_dir() -> Path:
+        """Return the active library directory (User's if exists, else Built-in)."""
+        USER_LIBRARY_DIR = CONFIG_DIR / "library"
+        if USER_LIBRARY_DIR.exists():
+            return USER_LIBRARY_DIR
+        return BUILTIN_LIBRARY_DIR
+
     @staticmethod
     def _get_repo_url() -> str:
         """Get repository URL based on configuration or system locale."""
@@ -46,15 +62,9 @@ class LibraryManager:
         return REPO_EN
 
     @staticmethod
-    def _get_library_dir() -> Path:
-        """Return the active library directory (User's if exists, else Built-in)."""
-        if USER_LIBRARY_DIR.exists():
-            return USER_LIBRARY_DIR
-        return BUILTIN_LIBRARY_DIR
-
-    @staticmethod
     def update_library():
         """Clone or pull the posehub repository."""
+        USER_LIBRARY_DIR = CONFIG_DIR / "library"
         repo_url = LibraryManager._get_repo_url()
         console.print(f"[bold cyan]Updating template library from {repo_url}...[/bold cyan]")
         
