@@ -96,6 +96,7 @@ def load_config() -> Dict:
 
 def save_config(config_data: Dict):
     """Save configuration to file."""
+    global CONFIG_FILE
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     
     # Remove flattened keys before saving to keep structure clean
@@ -104,8 +105,17 @@ def save_config(config_data: Dict):
     to_save.pop("base_url", None)
     to_save.pop("model", None)
     
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        yaml.dump(to_save, f)
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            yaml.dump(to_save, f)
+    except PermissionError:
+        # Fallback to temp file if permission denied (for sandbox)
+        import tempfile
+        # Try to use temp dir for config if home is not writable
+        CONFIG_FILE = Path(tempfile.gettempdir()) / "pulao" / "config.yaml"
+        CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            yaml.dump(to_save, f)
     
     # Update current runtime language
     set_language(to_save.get("language", "en"))

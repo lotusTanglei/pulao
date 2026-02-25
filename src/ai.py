@@ -6,14 +6,13 @@ from rich.prompt import Confirm, Prompt
 import re
 import json
 from typing import Optional, List, Dict
-from src.docker_ops import deploy_compose, deploy_cluster, DeploymentError
 from src.system_ops import execute_shell_command
 from src.prompts import get_system_prompt
 from src.i18n import t
 from src.library_manager import LibraryManager
 from src.logger import logger
 from src.memory import MemoryManager
-from src.tools import registry, deploy_service, deploy_cluster_service, execute_command
+from src.tools import registry
 
 console = Console()
 
