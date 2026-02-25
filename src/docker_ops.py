@@ -2,7 +2,7 @@
 import subprocess
 import os
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, List
 from dataclasses import dataclass
 from src.i18n import t
 from src.cluster import ClusterManager
