@@ -199,8 +199,13 @@ def process_deployment(instruction: str, config: dict):
                 func_args = json.loads(tool_call.function.arguments)
                 tool_call_id = tool_call.id
                 
-                console.print(f"[dim]Tool Call: {func_name}[/dim]")
-                logger.info(f"Executing tool: {func_name}")
+                # Enhanced Tool Call Display
+                args_str = ", ".join([f"{k}={v}" for k, v in func_args.items() if k != "yaml_content"]) # Hide long YAML content
+                if "yaml_content" in func_args:
+                    args_str += ", yaml_content=<...>"
+                
+                console.print(f"[bold cyan]Tool Call:[/bold cyan] {func_name}({args_str})")
+                logger.info(f"Executing tool: {func_name} with args: {args_str}")
                 
                 # Get the function from registry
                 func = registry.get_tool(func_name)
@@ -219,6 +224,10 @@ def process_deployment(instruction: str, config: dict):
                             continue
 
                     result = func(**func_args)
+                    
+                    # Enhanced Result Display
+                    console.print(f"[bold green]Tool Result:[/bold green] {result}")
+                    
                     session.add_tool_message(tool_call_id, str(result))
                     
                     # If result is large, truncate for log
@@ -229,6 +238,7 @@ def process_deployment(instruction: str, config: dict):
                     
                 except Exception as e:
                     error_msg = f"Tool execution error: {str(e)}"
+                    console.print(f"[bold red]Tool Error:[/bold red] {error_msg}")
                     logger.error(error_msg)
                     session.add_tool_message(tool_call_id, error_msg)
                     # The loop continues, AI sees the error and can retry/fix
