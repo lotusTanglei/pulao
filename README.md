@@ -11,7 +11,9 @@ Pulao 是一个基于 AI 的智能运维 Agent，旨在帮助运维人员通过�
 *   **🤖 AI Agent 架构 (New)**:
     *   **ReAct 循环**: AI 能够进行“思考-行动-观察”的循环，处理复杂的多步任务（如“先检查端口占用，再部署服务”）。
     *   **自我修正**: 如果部署失败，AI 会分析错误日志，自动尝试修复配置并重试。
-    *   **持久化记忆**: 你的对话历史会被保存，重启 CLI 后 AI 依然记得之前的上下文。
+    *   **记忆增强 (RAG)**: 引入 **向量数据库 (ChromaDB)** 实现长期记忆。
+        *   **经验复用**: Agent 会自动记住成功的故障排查方案，下次遇到相同问题时直接引用。
+        *   **上下文持久化**: 你的对话历史会被完整保存，重启 CLI 后 AI 依然记得之前的上下文。
 
 *   **🌐 多集群管理 (Multi-Cluster)**:
     *   支持管理多个集群环境（如 `dev`, `prod`）。
@@ -56,12 +58,12 @@ curl -L https://gitee.com/LOTUStudio/pulao/raw/main/install.sh | bash
  |_|    \__,_|_|\__,_|\___/   Model    : deepseek-reasoner
 
 Available Commands / 可用命令:
-  • ! <command>           : Execute shell command / 执行系统命令
-  • deploy <instruction>  : Deploy middleware / 部署中间件
-  • cluster               : Manage clusters / 集群管理
-  • node                  : Manage nodes / 节点管理
-  • update-library        : Update template library / 更新模板库
-  ...
+  • <natural language>    : Ask AI to deploy, manage clusters, or check system status
+  • ! <command>           : Execute shell command directly / 直接执行 Shell 命令
+  • config / setup        : Configure AI provider / 配置 AI
+  • providers             : List AI providers / 列出提供商
+  • use <provider>        : Switch AI provider / 切换提供商
+  • exit / quit           : Exit / 退出
 ```
 
 ### 3. 常用场景
@@ -78,15 +80,19 @@ Available Commands / 可用命令:
 [Result] 部署成功！访问地址: http://localhost:8081
 ```
 
-#### 场景 B: 集群管理
+#### 场景 B: 集群管理 (全自然语言交互)
 ```bash
 # 1. 创建生产环境
-> cluster create production
-> cluster use production
+> 创建一个名为 production 的集群
+[AI] 已为您创建集群 'production'。
 
 # 2. 添加节点
-> node add worker1 192.168.1.10 root
-> node add worker2 192.168.1.11 root
+> 添加两个节点：worker1 (192.168.1.10) 和 worker2 (192.168.1.11)，用户都是 root
+[AI] 正在添加节点 worker1...
+[Tool] Executing: add_node(worker1, 192.168.1.10, root)
+[AI] 正在添加节点 worker2...
+[Tool] Executing: add_node(worker2, 192.168.1.11, root)
+[Result] 节点添加完成。
 
 # 3. 部署高可用集群
 > 在 worker1 和 worker2 上部署 Redis 主从集群
@@ -95,12 +101,18 @@ Available Commands / 可用命令:
 [Result] 集群部署完成。
 ```
 
-#### 场景 C: 系统运维
+#### 场景 C: 长期记忆 (RAG)
 ```bash
-> 查一下系统负载，如果太高就清理一下缓存
-[AI] 正在检查系统负载...
-[Tool] Executing: uptime
-...
+# 1. 第一次遇到问题
+> 部署一个 Redis，但是不要用默认密码
+[AI] 好的，我会在 docker-compose.yml 中设置 REDIS_PASSWORD。
+[Result] 部署成功。
+
+# 2. 第二次遇到相似问题
+> 再帮我部署一个 Redis
+[AI] (检索到相关历史) 发现您之前部署 Redis 时偏好设置非默认密码。
+[AI] 这次也为您自动配置了随机密码。
+[Result] 部署成功。
 ```
 
 ## 🛠️ 配置说明 (Configuration)

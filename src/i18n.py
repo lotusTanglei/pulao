@@ -1,6 +1,32 @@
+"""
+国际化 (i18n) 模块
+
+本模块提供多语言支持功能，目前支持英文 (en) 和中文 (zh)。
+
+主要功能：
+1. 翻译字典管理：存储所有 UI 文本的翻译
+2. 语言切换：动态切换当前语言
+3. 翻译查询：根据 key 获取对应语言的文本
+4. 格式化支持：支持占位符格式化
+
+使用方式：
+    from src.i18n import t
+    print(t("deployment_success"))  # 输出: ✅ 部署成功!
+    print(t("config_saved", path="/path/to/config"))  # 输出: ✅ 配置已保存至 /path/to/config
+
+翻译覆盖范围：
+    - CLI 界面文本
+    - 错误提示信息
+    - 确认提示信息
+    - 安装向导文本
+    - 部署状态消息
+"""
+
+# ============ 标准库导入 ============
 from typing import Dict
 
-# Translation dictionary
+# ============ 翻译字典定义 ============
+
 TRANSLATIONS = {
     "en": {
         "config_title": "🔧 AI-Ops Configuration",
@@ -120,22 +146,65 @@ Please manually configure SSH trust on your control machine:
     }
 }
 
-# Global language setting (default to 'en')
+
+# ============ 全局语言设置 ============
+
+# 当前语言，默认为英文
 _CURRENT_LANG = "en"
 
+
+# ============ 语言切换函数 ============
+
 def set_language(lang: str):
+    """
+    设置当前语言
+    
+    参数:
+        lang: 语言代码 ("en" 或 "zh")
+    
+    注意:
+        - 如果传入无效语言代码，不会切换
+        - 语言设置保存在内存中，程序退出后重置
+    """
     global _CURRENT_LANG
     if lang in TRANSLATIONS:
         _CURRENT_LANG = lang
 
+
+# ============ 翻译查询函数 ============
+
 def get_text(key: str, **kwargs) -> str:
-    """Get translated text by key."""
+    """
+    根据 key 获取翻译文本
+    
+    参数:
+        key: 翻译文本的 key
+        **kwargs: 格式化参数，用于替换文本中的占位符
+    
+    返回:
+        翻译后的文本字符串
+    
+    示例:
+        t("config_saved", path="/home/user/config")  # 返回: ✅ 配置已保存至 /home/user/config
+    """
     lang_dict = TRANSLATIONS.get(_CURRENT_LANG, TRANSLATIONS["en"])
     text = lang_dict.get(key, key)
     if kwargs:
         return text.format(**kwargs)
     return text
 
+
 def t(key: str, **kwargs) -> str:
-    """Alias for get_text"""
+    """
+    翻译函数的简写别名
+    
+    这是模块的主要导出接口，推荐使用此函数进行翻译查询。
+    
+    参数:
+        key: 翻译文本的 key
+        **kwargs: 格式化参数
+    
+    返回:
+        翻译后的文本字符串
+    """
     return get_text(key, **kwargs)

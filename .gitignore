@@ -5,3 +5,6 @@ __pycache__/
 venv/
 .env
 .DS_Store
+ARCHITECTURE.md
+GAP_ANALYSIS.md
+PLAN_AUTONOMOUS_DECISION.md
