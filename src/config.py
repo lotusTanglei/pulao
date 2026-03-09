@@ -62,7 +62,7 @@ DEFAULT_CONFIG = {
             "model": "deepseek-reasoner",  # 默认模型
         }
     },
-    "language": "en"  # 默认语言为英文
+    "language": "en",  # 默认语言为英文
 }
 
 

@@ -32,15 +32,15 @@ import openai
 from rich.console import Console
 from rich.syntax import Syntax
 from rich.prompt import Confirm, Prompt
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 
 # ============ 本地模块导入 ============
-from src.system_ops import execute_shell_command  # 执行 Shell 命令工具
 from src.prompts import get_system_prompt  # 获取 AI 系统提示词
 from src.i18n import t  # 国际化翻译函数
 from src.library_manager import LibraryManager  # 模板库管理
 from src.logger import logger  # 日志记录
 from src.memory import MemoryManager, init_vector_memory  # 内存/历史记录管理
-from src.tools import registry  # 工具注册表
+from src.ai_agent import create_agent_app  # LangGraph Agent App
 
 # 创建 Rich 控制台对象，用于彩色输出
 console = Console()
@@ -209,52 +209,52 @@ def clean_yaml_content(content: str) -> str:
     return content
 
 
-def extract_json(content: str) -> Optional[Dict]:
+def convert_history_to_messages(history: List[Dict]) -> List[BaseMessage]:
     """
-    从 AI 响应中提取 JSON 数据
-    
-    AI 可能以多种格式返回 JSON：
-    1. 直接返回 JSON 字符串
-    2. 包裹在 ```json ``` 代码块中
-    3. 嵌入在文本中（找到第一个 { 和最后一个 }）
-    
-    这个函数尝试所有这些方式提取 JSON。
-    
-    参数:
-        content: AI 生成的文本内容
-    
-    返回:
-        解析后的字典对象，提取失败返回 None
-    
-    注意:
-        这个函数是备用方案，现代版本优先使用工具调用（Function Calling）
-        与 AI 交互，因为工具调用能更可靠地获取结构化数据。
+    Convert Pulao's dict history to LangChain BaseMessages.
     """
-    # 方法1：直接解析
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        pass
+    messages = []
+    for item in history:
+        role = item.get("role")
+        content = item.get("content") or ""
         
-    # 方法2：从 ```json ``` 代码块中提取
-    match = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
-
-    # 方法3：从文本中找第一个 { 到最后一个 }
-    start = content.find('{')
-    end = content.rfind('}')
-    if start != -1 and end != -1:
-        json_str = content[start:end+1]
-        try:
-            return json.loads(json_str)
-        except json.JSONDecodeError:
-            pass
-            
-    return None
+        if role == "system":
+            messages.append(SystemMessage(content=content))
+        elif role == "user":
+            messages.append(HumanMessage(content=content))
+        elif role == "assistant":
+            tool_calls = item.get("tool_calls")
+            msg = AIMessage(content=content)
+            if tool_calls:
+                lc_tool_calls = []
+                for tc in tool_calls:
+                    if isinstance(tc, dict):
+                         # Loaded from JSON or dict
+                        func = tc.get("function", {})
+                        func_name = func.get("name")
+                        args_str = func.get("arguments", "{}")
+                        try:
+                            func_args = json.loads(args_str) if isinstance(args_str, str) else args_str
+                        except:
+                            func_args = {}
+                        tc_id = tc.get("id")
+                    else:
+                        # OpenAI Object
+                        func_name = tc.function.name
+                        func_args = json.loads(tc.function.arguments)
+                        tc_id = tc.id
+                    
+                    lc_tool_calls.append({
+                        "name": func_name,
+                        "args": func_args,
+                        "id": tc_id
+                    })
+                msg.tool_calls = lc_tool_calls
+            messages.append(msg)
+        elif role == "tool":
+            tool_call_id = item.get("tool_call_id")
+            messages.append(ToolMessage(content=content, tool_call_id=tool_call_id))
+    return messages
 
 
 # ============ 全局会话管理 ============
@@ -373,145 +373,94 @@ def process_deployment(instruction: str, config: dict):
     console.print(f"[dim]{t('sending_request')}[/dim]")
     logger.info(f"Sending request to AI: {instruction[:50]}...")
     
-    # ============ ReAct Agent 循环 ============
-    # 最大循环轮次，防止 AI 进入无限循环
-    MAX_TURNS = 10
-    turn_count = 0
-    
-    while turn_count < MAX_TURNS:
-        turn_count += 1
-        try:
-            # 调用 AI 模型
-            # 参数说明：
-            # - model: 使用的模型
-            # - messages: 对话历史（包含系统提示、用户消息、之前的结果）
-            # - temperature: 创造性参数，较低的值会让输出更确定性
-            # - tools: 工具注册表，定义 AI 可以调用的函数
-            # - tool_choice: 自动选择调用哪个工具
-            response = session.client.chat.completions.create(
-                model=session.model,
-                messages=session.get_messages(),
-                temperature=0.2,
-                tools=registry.schemas,
-                tool_choice="auto"
-            )
-            
-            # 获取 AI 的响应消息
-            message = response.choices[0].message
-            content = message.content  # AI 的文本回答
-            tool_calls = message.tool_calls  # AI 调用的工具列表
-            
-            # 如果 AI 返回了文本内容，显示给用户
-            # 对于 deepseek-reasoner 等模型，这里可能包含推理过程
-            if content:
-                console.print(f"\n[bold blue]AI:[/bold blue] {content}")
-                session.add_assistant_message(content, tool_calls)
-            elif tool_calls:
-                # 如果只有工具调用没有文本，也需要添加到历史
-                session.add_assistant_message("", tool_calls)
+    # ============ LangGraph Execution ============
+    try:
+        # Initialize app
+        app = create_agent_app(config)
+    except Exception as e:
+        logger.critical(f"Failed to initialize AI Agent: {e}", exc_info=True)
+        console.print(f"[bold red]Critical Error:[/bold red] Failed to initialize AI Agent.\n{e}")
+        console.print("Please check your configuration and requirements.")
+        return
 
-            # ============ 无工具调用 ============
-            # 如果 AI 没有请求调用工具，说明是最终答案或需要澄清问题
-            if not tool_calls:
-                # 备用方案：检查是否返回了旧格式的 JSON
+    try:
+        # Convert history
+        lc_messages = convert_history_to_messages(session.history)
+        
+        # Run graph
+        inputs = {"messages": lc_messages}
+        result = app.invoke(inputs)
+        
+        # Get new messages
+        all_messages = result["messages"]
+        new_messages = all_messages[len(lc_messages):]
+        
+        # Process new messages to update history and print to console
+        for msg in new_messages:
+            if isinstance(msg, AIMessage):
+                content = msg.content
+                tool_calls = msg.tool_calls
+                
                 if content:
-                    legacy_json = extract_json(content)
-                    if legacy_json and isinstance(legacy_json, dict):
-                        msg_type = legacy_json.get("type")
-                        # 如果是提问类型，显示问题
-                        if msg_type == "question":
-                            console.print(f"\n[bold yellow]AI Question:[/bold yellow] {legacy_json.get('content')}")
-                            # 视为最终响应，用户需要回答
-                            break
-                        # 其他类型（plan/command）的处理...
-                # 没有更多操作，退出循环
-                break
-            
-            # ============ 处理工具调用 ============
-            # AI 请求调用一个或多个工具
-            for tool_call in tool_calls:
-                # 解析工具调用信息
-                func_name = tool_call.function.name  # 工具名称
-                func_args = json.loads(tool_call.function.arguments)  # 工具参数
-                tool_call_id = tool_call.id  # 工具调用 ID，用于返回结果
+                    console.print(f"\n[bold blue]AI:[/bold blue] {content}")
                 
-                # 友好地显示工具调用（隐藏过长的 YAML 内容）
-                args_str = ", ".join([f"{k}={v}" for k, v in func_args.items() if k != "yaml_content"])
-                if "yaml_content" in func_args:
-                    args_str += ", yaml_content=<...>"
+                if tool_calls:
+                     # We need to convert LangChain tool calls back to OpenAI format for Pulao history
+                     openai_tool_calls = []
+                     for tc in tool_calls:
+                         # Display
+                         args_str = ", ".join([f"{k}={v}" for k, v in tc["args"].items() if k != "yaml_content"])
+                         if "yaml_content" in tc["args"]:
+                             args_str += ", yaml_content=<...>"
+                         console.print(f"[bold cyan]Tool Call:[/bold cyan] {tc['name']}({args_str})")
+                         
+                         openai_tool_calls.append({
+                             "id": tc["id"],
+                             "type": "function",
+                             "function": {
+                                 "name": tc["name"],
+                                 "arguments": json.dumps(tc["args"])
+                             }
+                         })
+                     
+                     session.add_assistant_message(content, openai_tool_calls)
+                else:
+                    # Just content
+                    session.add_assistant_message(content)
+                    
+            elif isinstance(msg, ToolMessage):
+                content = msg.content
+                tool_call_id = msg.tool_call_id
                 
-                console.print(f"[bold cyan]Tool Call:[/bold cyan] {func_name}({args_str})")
-                logger.info(f"Executing tool: {func_name} with args: {args_str}")
+                # Display
+                log_res = str(content)
+                if len(log_res) > 200:
+                    log_res = log_res[:200] + "..."
                 
-                # 从注册表中获取工具函数
-                func = registry.get_tool(func_name)
-                if not func:
-                    error_msg = f"Error: Tool {func_name} not found."
-                    session.add_tool_message(tool_call_id, error_msg)
-                    continue
+                console.print(f"[bold green]Tool Result:[/bold green] {log_res}")
+                session.add_tool_message(tool_call_id, content)
+        
+        # Memory Storage
+        if new_messages:
+            try:
+                last_msg = new_messages[-1]
+                summary = last_msg.content if isinstance(last_msg, AIMessage) else ""
                 
-                # 执行工具
-                try:
-                    # 对于危险操作，需要用户确认
-                    # 这些操作可能会部署服务或执行命令，有潜在风险
-                    if func_name in ["deploy_service", "deploy_cluster_service", "execute_command"]:
-                        if not Confirm.ask(f"Allow AI to run {func_name}?"):
-                            session.add_tool_message(tool_call_id, "User denied permission.")
-                            console.print("[yellow]Action denied by user.[/yellow]")
-                            continue
-
-                    # 执行工具函数，获取返回结果
-                    result = func(**func_args)
+                if not summary and isinstance(last_msg, ToolMessage):
+                    summary = f"Tool executed: {last_msg.tool_call_id}"
                     
-                    # 显示工具执行结果
-                    console.print(f"[bold green]Tool Result:[/bold green] {result}")
-                    
-                    # 将结果添加工具消息到历史，供 AI 下一轮决策使用
-                    session.add_tool_message(tool_call_id, str(result))
-                    
-                    # 截断日志输出，避免过长
-                    log_res = str(result)
-                    if len(log_res) > 200: 
-                        log_res = log_res[:200] + "..."
-                    logger.info(f"Tool result: {log_res}")
-                    
-                except Exception as e:
-                    # 工具执行出错，记录错误并通知 AI
-                    error_msg = f"Tool execution error: {str(e)}"
-                    console.print(f"[bold red]Tool Error:[/bold red] {error_msg}")
-                    logger.error(error_msg)
-                    session.add_tool_message(tool_call_id, error_msg)
-                    # 循环继续，AI 会看到错误并尝试修复或换一种方式
-                    
-        except KeyboardInterrupt:
-            # 用户取消请求
-            console.print(f"[yellow]{t('request_cancelled')}[/yellow]")
-            return
-
-        except Exception as e:
-            # 其他错误
-            console.print(f"[bold red]{t('ai_error')}[/bold red] {e}")
-            logger.error(f"AI Process Error: {e}", exc_info=True)
-            raise
-
-    # ============ 记忆存储 ============
-    if turn_count > 0:
-        try:
-            # 获取最后一条消息作为总结
-            last_msg = session.history[-1]
-            summary = last_msg.get("content", "")
-            
-            # 如果是工具调用结果，可能没有 content 或者 content 很长
-            if not summary and last_msg.get("role") == "tool":
-                summary = f"Tool executed: {last_msg.get('tool_call_id')}"
-            
-            if summary:
-                # 截断过长的总结
-                if len(summary) > 500:
-                    summary = summary[:500] + "..."
+                if summary:
+                     if len(summary) > 500:
+                         summary = summary[:500] + "..."
+                     vector_memory = init_vector_memory()
+                     vector_memory.add_memory(instruction, metadata={"result": summary})
+                     logger.info("Saved interaction to memory.")
+            except Exception as e:
+                logger.warning(f"Failed to save memory: {e}")
                 
-                vector_memory = init_vector_memory()
-                vector_memory.add_memory(instruction, metadata={"result": summary})
-                logger.info("Saved interaction to memory.")
-        except Exception as e:
-            logger.warning(f"Failed to save memory: {e}")
+    except KeyboardInterrupt:
+        console.print(f"[yellow]{t('request_cancelled')}[/yellow]")
+        return
+    except Exception as e:
+        console.print(f"[bold red]AI Error:[/bold red] {e}")
+        logger.error(f"AI Process Error: {e}", exc_info=True)

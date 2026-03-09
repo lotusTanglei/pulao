@@ -8,3 +8,6 @@ prompt_toolkit
 gnureadline; sys_platform == 'darwin'
 chromadb
 pydantic-settings
+langchain-core
+langchain-openai
+langgraph
