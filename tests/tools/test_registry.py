@@ -39,7 +39,7 @@ class TestToolRegistry:
         assert len(schemas) == 1
         
         schema = schemas[0]
-        assert schema["name"] == "compute"
-        assert "计算两数之和" in schema["description"]
-        assert "x" in schema["parameters"]["properties"]
-        assert schema["parameters"]["properties"]["x"]["type"] == "integer"
+        assert schema["function"]["name"] == "compute"
+        assert "计算两数之和" in schema["function"]["description"]
+        assert "x" in schema["function"]["parameters"]["properties"]
+        assert schema["function"]["parameters"]["properties"]["x"]["type"] == "integer"

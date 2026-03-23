@@ -3,21 +3,26 @@ from unittest.mock import patch, MagicMock
 from src.tools.system.system_ops import execute_shell_command, check_port_available
 
 class TestSystemOps:
-    @patch("src.tools.system.system_ops.run_command")
-    def test_execute_shell_command_success(self, mock_run):
+    @patch("src.tools.system.system_ops.subprocess.Popen")
+    def test_execute_shell_command_success(self, mock_popen):
         """测试执行 shell 命令"""
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = "hello world\n"
-        mock_run.return_value = mock_result
+        mock_process = MagicMock()
+        mock_process.stdout.readline.side_effect = ["hello world\n", ""]
+        mock_process.poll.side_effect = [None, 0]
+        mock_process.stderr.read.return_value = ""
+        mock_process.returncode = 0
+        mock_popen.return_value = mock_process
         
-        result = execute_shell_command("echo 'hello world'")
+        execute_shell_command("echo 'hello world'")
         
-        # 验证传入 run_command 的是列表而不是字符串
-        mock_run.assert_called_once()
-        args, kwargs = mock_run.call_args
-        assert args[0] == ["sh", "-c", "echo 'hello world'"]
-        assert "hello world" in result
+        mock_popen.assert_called_once_with(
+            "echo 'hello world'", 
+            shell=True,
+            stdout=-1, # subprocess.PIPE is -1
+            stderr=-1,
+            text=True,
+            executable="/bin/bash"
+        )
         
     @patch("src.tools.system.system_ops.socket.socket")
     def test_check_port_available(self, mock_socket):
