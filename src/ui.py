@@ -127,10 +127,7 @@ def print_header(cfg):
     commands = [
         ("! <command>", "Execute shell command (e.g., '!ls') / 执行系统命令"),
         ("deploy <instruction>", "Deploy middleware (e.g., 'deploy redis') / 部署中间件"),
-        ("config / setup", "Configure provider / 配置提供商"),
-        ("providers", "List all providers / 列出所有提供商"),
-        ("use <name>", "Switch provider / 切换提供商"),
-        ("add-provider <name>", "Add new provider / 添加提供商"),
+        ("llm <action>", "Manage LLM: config/list/use/add / 管理大模型配置"),
         ("update-library", "Update template library from GitHub / 更新模板库"),
         ("exit / quit", "Exit Pulao / 退出")
     ]

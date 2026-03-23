@@ -97,7 +97,7 @@ def repl_loop():
     用户可以输入各种指令，包括：
     - 自然语言部署指令（如 "部署一个 Redis"）
     - Shell 命令（以 ! 开头）
-    - 管理命令（config, providers, use 等）
+    - 管理命令（llm config/list/use/add 等）
     
     循环流程：
     1. 显示提示符，等待用户输入
@@ -189,36 +189,53 @@ def repl_loop():
                 console.print("Bye!")
                 break
                 
-            # ============ 配置命令 ============
-            # config 或 setup：配置当前 AI 提供商
-            if cmd_name in ["config", "setup"]:
-                config()
-                cfg = load_config()
-                print_header(cfg)  # 刷新头部信息
-                continue
-
-            # ============ 列出提供商命令 ============
-            if cmd_name == "providers":
-                providers()
-                continue
-                
-            # ============ 切换提供商命令 ============
-            if cmd_name == "use":
+            # ============ LLM 管理命令 ============
+            # llm：管理大模型配置（config/list/use/add）
+            if cmd_name == "llm":
                 if len(cmd_parts) < 2:
-                    console.print("[red]Usage: use <name_or_index>[/red]")
+                    console.print("[red]Usage: llm <config|list|use|add> [args][/red]")
+                    console.print("  config      : 配置当前模型")
+                    console.print("  list        : 列出所有模型配置")
+                    console.print("  use <name>  : 切换模型配置")
+                    console.print("  add <name>  : 添加新模型配置")
                     continue
-                use(cmd_parts[1])
-                cfg = load_config()
-                print_header(cfg)  # 刷新头部信息
-                continue
                 
-            # ============ 添加提供商命令 ============
-            if cmd_name == "add-provider":
-                if len(cmd_parts) < 2:
-                    console.print("[red]Usage: add-provider <name>[/red]")
-                    continue
-                add_provider(cmd_parts[1])
-                cfg = load_config()
+                llm_cmd = cmd_parts[1].lower()
+                
+                if llm_cmd == "config":
+                    try:
+                        config()
+                        cfg = load_config()
+                        print_header(cfg)
+                    except Exception as e:
+                        console.print(f"[bold red]Error in 'llm config':[/bold red] {e}")
+                elif llm_cmd == "list":
+                    try:
+                        providers()
+                    except Exception as e:
+                        console.print(f"[bold red]Error in 'llm list':[/bold red] {e}")
+                elif llm_cmd == "use":
+                    if len(cmd_parts) < 3:
+                        console.print("[red]Usage: llm use <name>[/red]")
+                        continue
+                    try:
+                        use(cmd_parts[2])
+                        cfg = load_config()
+                        print_header(cfg)
+                    except Exception as e:
+                        console.print(f"[bold red]Error in 'llm use':[/bold red] {e}")
+                elif llm_cmd == "add":
+                    if len(cmd_parts) < 3:
+                        console.print("[red]Usage: llm add <name>[/red]")
+                        continue
+                    try:
+                        add_provider(cmd_parts[2])
+                        cfg = load_config()
+                    except Exception as e:
+                        console.print(f"[bold red]Error in 'llm add':[/bold red] {e}")
+                else:
+                    console.print(f"[red]Unknown llm command: {llm_cmd}[/red]")
+                    console.print("Valid commands: config, list, use, add")
                 continue
                 
             # ============ 部署指令 ============
@@ -240,23 +257,21 @@ def repl_loop():
             console.print(f"[bold red]System Error:[/bold red] {e}")
 
 
-# ============ CLI 命令：列出所有 AI 提供商 ============
-@app.command(help="List all configured AI providers / 列出所有 AI 提供商")
+# ============ 内部函数：列出所有 LLM 配置 ============
 def providers():
     """
-    列出所有已配置的 AI 提供商
+    列出所有已配置的 LLM
     
-    显示每个提供商的名称、Base URL、模型名称。
-    当前使用的提供商会标记为 * (current)。
+    显示每个配置的名称、Base URL、模型名称。
+    当前使用的配置会标记为 * (current)。
     
-    依赖:
-        load_config(): 加载当前配置
+    通过 llm list 命令调用。
     """
     cfg = load_config()
     current = cfg.get("current_provider", "default")
     providers_dict = cfg.get("providers", {})
     
-    console.print("[bold]Configured Providers / 已配置的提供商:[/bold]")
+    console.print("[bold]Configured LLMs / 已配置的大模型:[/bold]")
     
     # 排序：default 排在最前面，其余按字母顺序
     names = sorted(providers_dict.keys())
@@ -264,7 +279,7 @@ def providers():
         names.remove("default")
         names.insert(0, "default")
         
-    # 遍历显示每个提供商的信息
+    # 遍历显示每个配置的信息
     for idx, name in enumerate(names, 1):
         details = providers_dict[name]
         status = "[green]* (current)[/green]" if name == current else ""
@@ -274,48 +289,39 @@ def providers():
         console.print("")
 
 
-# ============ CLI 命令：添加新的 AI 提供商 ============
-@app.command(name="add-provider", help="Add a new AI provider / 添加新的 AI 提供商")
+# ============ 内部函数：添加新的 LLM 配置 ============
 def add_provider(name: str):
     """
-    添加新的 AI 提供商
+    添加新的 LLM 配置
     
-    交互式提示用户输入新提供商的配置信息：
+    交互式提示用户输入新配置的信息：
     - API Key（密码形式输入，不显示）
     - Base URL（API 端点地址）
     - Model（模型名称）
     
-    参数:
-        name: 提供商名称（从命令行参数获取）
-    
-    保存后自动更新配置文件。
+    通过 llm add <name> 命令调用。
     """
-    console.print(f"[bold blue]Adding Provider: {name}[/bold blue]")
+    console.print(f"[bold blue]Adding LLM Config: {name}[/bold blue]")
     # 交互式输入各项配置
     api_key = Prompt.ask(t("enter_api_key"), password=True)
     base_url = Prompt.ask(t("enter_base_url"))
     model = Prompt.ask(t("enter_model"))
     
-    # 调用配置模块保存提供商信息
+    # 调用配置模块保存配置信息
     path = add_provider_to_config(name, api_key, base_url, model)
-    console.print(f"[green]Provider '{name}' added successfully.[/green]")
+    console.print(f"[green]LLM config '{name}' added successfully.[/green]")
 
 
-# ============ CLI 命令：切换 AI 提供商 ============
-@app.command(help="Switch to another AI provider / 切换 AI 提供商")
+# ============ 内部函数：切换 LLM 配置 ============
 def use(name_or_index: str):
     """
-    切换当前使用的 AI 提供商
+    切换当前使用的 LLM 配置
     
-    支持两种方式指定提供商：
-    1. 按名称：如 "use deepseek"
-    2. 按索引：如 "use 1"（对应 providers 命令显示的顺序）
+    支持两种方式指定配置：
+    1. 按名称：如 "llm use deepseek"
+    2. 按索引：如 "llm use 1"（对应 llm list 显示的顺序）
     
-    参数:
-        name_or_index: 提供商名称或索引（从命令行参数获取）
-    
-    异常:
-        ValueError: 提供商名称不存在
+    通过 llm use <name> 命令调用。
     """
     cfg = load_config()
     providers_dict = cfg.get("providers", {})
@@ -339,23 +345,22 @@ def use(name_or_index: str):
 
     try:
         switch_provider(target_name)
-        console.print(f"[green]Switched to provider: {target_name}[/green]")
+        console.print(f"[green]Switched to LLM: {target_name}[/green]")
     except ValueError as e:
         console.print(f"[red]{str(e)}[/red]")
 
 
-# ============ CLI 命令：配置当前 AI 提供商 ============
-@app.command(help=t("cli_config_help"))
+# ============ 内部函数：配置当前 LLM ============
 def config():
     """
-    配置当前 AI 提供商的 API 设置
+    配置当前 LLM 的 API 设置
     
-    交互式修改当前使用的提供商的配置：
+    交互式修改当前使用的 LLM 配置：
     - API Key：用于调用 AI 服务的密钥
     - Base URL：AI 服务的 API 端点地址
     - Model：使用的模型名称
     
-    配置会自动保存到 ~/.pulao/config.yaml 文件中。
+    通过 llm config 命令调用。
     """
     # 重新加载配置，确保语言设置正确
     current_config = load_config()
@@ -368,7 +373,7 @@ def config():
     base_url = Prompt.ask(t("enter_base_url"), default=current_config["base_url"])
     model = Prompt.ask(t("enter_model"), default=current_config["model"])
     
-    # 保存到当前提供商
+    # 保存到当前配置
     add_provider_to_config(current_provider_name, api_key, base_url, model)
     console.print(f"[green]{t('config_saved', path='config.yaml')}[/green]")
 
