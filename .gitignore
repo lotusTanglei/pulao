@@ -36,6 +36,9 @@ chroma_db/
 history.json
 *.log
 
+# Local Documentation (Not to be tracked)
+docs/
+
 # Temporary / Planning Docs (from early stages)
 ARCHITECTURE.md
 GAP_ANALYSIS.md
