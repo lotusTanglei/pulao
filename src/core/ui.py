@@ -27,7 +27,7 @@ from rich import box
 
 # ============ 本地模块导入 ============
 from src import __version__  # 项目版本号
-from src.i18n import t  # 国际化翻译函数
+from src.core.i18n import t  # 国际化翻译函数
 
 # 创建 Rich 控制台对象
 console = Console()

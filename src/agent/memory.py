@@ -33,8 +33,8 @@ import chromadb
 import openai
 
 # ============ 本地模块导入 ============
-from src.logger import logger  # 日志记录
-from src.config import CONFIG_DIR, load_config  # 配置目录
+from src.core.logger import logger  # 日志记录
+from src.core.config import CONFIG_DIR, load_config  # 配置目录
 
 
 # ============ 历史文件路径 ============

@@ -26,7 +26,7 @@ from typing import Optional, Dict
 import yaml
 
 # ============ 本地模块导入 ============
-from src.i18n import set_language  # 设置界面语言
+from src.core.i18n import set_language  # 设置界面语言
 
 
 # ============ 配置目录和文件路径 ============

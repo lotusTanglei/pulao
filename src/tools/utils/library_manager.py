@@ -46,7 +46,7 @@ REPO_ZH = "https://gitee.com/LOTUStudio/posehub.git"  # Gitee（国内加速）
 REPO_EN = "https://github.com/lotusTanglei/posehub.git"  # GitHub
 
 # ============ 本地模块导入 ============
-from src.config import load_config, CONFIG_DIR  # 配置加载
+from src.core.config import load_config, CONFIG_DIR  # 配置加载
 
 
 # ============ 模板库管理器类 ============

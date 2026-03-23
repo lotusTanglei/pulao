@@ -27,7 +27,7 @@ from pathlib import Path
 import sys
 
 # ============ 本地模块导入 ============
-from src.config import CONFIG_DIR  # 配置目录
+from src.core.config import CONFIG_DIR  # 配置目录
 
 
 # ============ 日志路径定义 ============

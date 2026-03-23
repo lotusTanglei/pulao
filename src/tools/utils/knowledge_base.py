@@ -31,9 +31,9 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
-from src.config import CONFIG_DIR
-from src.logger import logger
-from src.memory import init_vector_memory
+from src.core.config import CONFIG_DIR
+from src.core.logger import logger
+from src.agent.memory import init_vector_memory
 
 console = Console()
 

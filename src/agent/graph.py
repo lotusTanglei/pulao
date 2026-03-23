@@ -6,7 +6,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END, START
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
-from src.tools import registry
+from src.tools.registry import registry
 
 # 1. Define AgentState
 class AgentState(TypedDict):

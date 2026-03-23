@@ -28,11 +28,11 @@ from typing import Callable, Dict, List, Any, Optional
 from functools import wraps
 
 # ============ 本地模块导入 ============
-from src.docker_ops import deploy_compose, deploy_cluster  # Docker 部署操作
-from src.cluster import ClusterManager  # 集群管理
-from src.library_manager import LibraryManager  # 模板库管理
-from src.system_ops import execute_shell_command  # Shell 命令执行
-from src.logger import logger  # 日志记录
+from src.tools.docker.docker_ops import deploy_compose, deploy_cluster  # Docker 部署操作
+from src.tools.cluster.cluster import ClusterManager  # 集群管理
+from src.tools.utils.library_manager import LibraryManager  # 模板库管理
+from src.tools.system.system_ops import execute_shell_command  # Shell 命令执行
+from src.core.logger import logger  # 日志记录
 
 
 # ============ 工具注册表类 ============
@@ -210,7 +210,7 @@ def deploy_service(yaml_content: str, project_name: str) -> str:
 
 # ============ GitOps 工具 ============
 
-from src.gitops import (
+from src.tools.utils.gitops import (
     init_git_repo,
     clone_git_repo,
     pull_git_updates,
@@ -520,7 +520,7 @@ def view_changelog(limit: int = 20) -> str:
 
 # ============ 安全扫描工具 ============
 
-from src.security_scan import (
+from src.tools.security.security_scan import (
     scan_image_with_trivy,
     format_scan_result,
     check_docker_security_config,
@@ -626,7 +626,7 @@ def security_audit(image_name: str = None) -> str:
 
 # ============ 知识库工具 ============
 
-from src.knowledge_base import (
+from src.tools.utils.knowledge_base import (
     save_deployment_experience,
     save_troubleshooting_case,
     search_knowledge,
@@ -761,7 +761,7 @@ def export_kb(output_path: str = None) -> str:
 
 # ============ 运维诊断工具 ============
 
-from src.ops_diagnostics import (
+from src.tools.system.ops_diagnostics import (
     get_container_logs,
     analyze_logs,
     check_container_status,

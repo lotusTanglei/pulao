@@ -25,11 +25,11 @@ from typing import Dict, Optional, Tuple, List
 from dataclasses import dataclass
 
 # ============ 本地模块导入 ============
-from src.i18n import t  # 国际化翻译函数
-from src.cluster import ClusterManager  # 集群管理
-from src.remote_ops import RemoteExecutor, SSHError  # SSH 远程操作
-from src.logger import logger  # 日志记录
-from src.config import CONFIG_DIR  # 配置目录
+from src.core.i18n import t  # 国际化翻译函数
+from src.tools.cluster.cluster import ClusterManager  # 集群管理
+from src.tools.cluster.remote_ops import RemoteExecutor, SSHError  # SSH 远程操作
+from src.core.logger import logger  # 日志记录
+from src.core.config import CONFIG_DIR  # 配置目录
 
 # 部署目录：所有部署的 docker-compose 文件保存在此目录下
 DEPLOY_DIR = CONFIG_DIR / "deployments"

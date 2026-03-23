@@ -26,7 +26,7 @@ from typing import Dict, List
 from rich.console import Console
 
 # ============ 本地模块导入 ============
-from src.logger import logger  # 日志记录
+from src.core.logger import logger  # 日志记录
 
 # 创建 Rich 控制台对象
 console = Console()

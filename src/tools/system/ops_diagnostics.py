@@ -34,10 +34,10 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
-from src.logger import logger
-from src.config import CONFIG_DIR
-from src.cluster import ClusterManager
-from src.remote_ops import RemoteExecutor
+from src.core.logger import logger
+from src.core.config import CONFIG_DIR
+from src.tools.cluster.cluster import ClusterManager
+from src.tools.cluster.remote_ops import RemoteExecutor
 
 console = Console()
 
@@ -735,7 +735,7 @@ def rollback_service(project_name: str, host: Optional[str] = None) -> str:
         操作结果字符串
     """
     try:
-        from src.docker_ops import DEPLOY_DIR
+        from src.tools.docker.docker_ops import DEPLOY_DIR
         
         project_dir = DEPLOY_DIR / project_name
         compose_file = project_dir / "docker-compose.yml"

@@ -10,7 +10,7 @@
 4. 格式化支持：支持占位符格式化
 
 使用方式：
-    from src.i18n import t
+    from src.core.i18n import t
     print(t("deployment_success"))  # 输出: ✅ 部署成功!
     print(t("config_saved", path="/path/to/config"))  # 输出: ✅ 配置已保存至 /path/to/config
 

@@ -26,8 +26,8 @@ from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
 from rich.table import Table
 
-from src.config import CONFIG_DIR
-from src.logger import logger
+from src.core.config import CONFIG_DIR
+from src.core.logger import logger
 
 console = Console()
 

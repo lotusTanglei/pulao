@@ -35,12 +35,12 @@ from rich.prompt import Confirm, Prompt
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 
 # ============ 本地模块导入 ============
-from src.prompts import get_system_prompt  # 获取 AI 系统提示词
-from src.i18n import t  # 国际化翻译函数
-from src.library_manager import LibraryManager  # 模板库管理
-from src.logger import logger  # 日志记录
-from src.memory import MemoryManager, init_vector_memory  # 内存/历史记录管理
-from src.ai_agent import create_agent_app  # LangGraph Agent App
+from src.agent.prompts import get_system_prompt  # 获取 AI 系统提示词
+from src.core.i18n import t  # 国际化翻译函数
+from src.tools.utils.library_manager import LibraryManager  # 模板库管理
+from src.core.logger import logger  # 日志记录
+from src.agent.memory import MemoryManager, init_vector_memory  # 内存/历史记录管理
+from src.agent.graph import create_agent_app  # LangGraph Agent App
 
 # 创建 Rich 控制台对象，用于彩色输出
 console = Console()

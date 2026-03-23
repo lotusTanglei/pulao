@@ -30,8 +30,8 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 
-from src.logger import logger
-from src.config import CONFIG_DIR
+from src.core.logger import logger
+from src.core.config import CONFIG_DIR
 
 console = Console()
 

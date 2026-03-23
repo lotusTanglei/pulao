@@ -24,17 +24,17 @@ from rich.panel import Panel
 from rich.text import Text
 
 # ============ 本地模块导入 ============
-from src.config import (
+from src.core.config import (
     load_config, 
     save_config, 
     add_provider as add_provider_to_config, 
     switch_provider
 )
-from src.i18n import t  # 国际化翻译函数
+from src.core.i18n import t  # 国际化翻译函数
 from src import __version__  # 项目版本号
-from src.ui import print_header  # 打印头部 UI
-from src.system_ops import execute_shell_command  # 执行 Shell 命令
-from src.logger import setup_logging  # 日志系统初始化
+from src.core.ui import print_header  # 打印头部 UI
+from src.tools.system.system_ops import execute_shell_command  # 执行 Shell 命令
+from src.core.logger import setup_logging  # 日志系统初始化
 
 # ============ 日志系统初始化 ============
 # 在应用启动早期初始化日志系统，确保所有模块都能正常记录日志
@@ -127,7 +127,7 @@ def repl_loop():
             return  # 用户取消，返回退出
     
     # 延迟导入 AI 处理模块，避免启动时不必要的开销
-    from src.ai import process_deployment
+    from src.agent.orchestrator import process_deployment
     
     # ============ 打印头部信息 ============
     # 显示 ASCII Logo 和当前配置信息

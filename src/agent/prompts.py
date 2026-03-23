@@ -24,9 +24,9 @@ from pathlib import Path
 from typing import Dict
 
 # ============ 本地模块导入 ============
-from src.config import CONFIG_DIR  # 配置目录
-from src.system_ops import get_system_info  # 系统信息收集
-from src.cluster import ClusterManager  # 集群管理
+from src.core.config import CONFIG_DIR  # 配置目录
+from src.tools.system.system_ops import get_system_info  # 系统信息收集
+from src.tools.cluster.cluster import ClusterManager  # 集群管理
 
 
 # ============ 提示词文件路径函数 ============

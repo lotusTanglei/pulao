@@ -28,9 +28,9 @@ from rich.console import Console
 from rich.table import Table
 
 # ============ 本地模块导入 ============
-from src.remote_ops import RemoteExecutor  # SSH 连接检查
-from src.i18n import t  # 国际化翻译函数
-from src.config import CONFIG_DIR  # 配置目录
+from src.tools.cluster.remote_ops import RemoteExecutor  # SSH 连接检查
+from src.core.i18n import t  # 国际化翻译函数
+from src.core.config import CONFIG_DIR  # 配置目录
 
 # 创建 Rich 控制台对象
 console = Console()
