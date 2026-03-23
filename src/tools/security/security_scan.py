@@ -22,6 +22,7 @@ import subprocess
 import re
 import json
 import os
+import shutil
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 from pathlib import Path
@@ -609,3 +610,35 @@ def format_comprehensive_report(report: Dict) -> str:
         lines.append(format_scan_result(report["image_scan"]))
     
     return "\n".join(lines)
+
+
+def scan_docker_image(image_name: str) -> str:
+    """
+    Scan a Docker image using Trivy.
+    
+    Args:
+        image_name: The name of the Docker image to scan.
+        
+    Returns:
+        The scan result or an error message.
+    """
+    if not shutil.which("trivy"):
+        return (
+            "Trivy is not installed. Please install Trivy to use this feature.\n"
+            "macOS: brew install trivy\n"
+            "Linux (Debian/Ubuntu): apt-get install trivy"
+        )
+    
+    try:
+        cmd = ["trivy", "image", "--severity", "HIGH,CRITICAL", "--no-progress", image_name]
+        logger.info(f"Scanning image with command: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        output = result.stdout.strip()
+        if not output and result.stderr:
+            return f"Error/Warning during scan:\n{result.stderr.strip()}"
+            
+        return output if output else "Scan completed successfully, but no output was generated."
+    except Exception as e:
+        return f"Exception occurred during scan: {str(e)}"
+

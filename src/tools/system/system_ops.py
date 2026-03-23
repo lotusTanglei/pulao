@@ -171,3 +171,28 @@ def execute_shell_command(command: str):
             
     except Exception as e:
         console.print(f"[bold red]{t('error_executing_command')}[/bold red] {e}")
+
+
+# ============ 端口检查函数 ============
+
+def check_port_available(port: int) -> str:
+    """
+    检查本地机器上的端口是否可用
+    
+    参数:
+        port: 要检查的端口号
+        
+    返回:
+        端口是否可用的状态信息
+    """
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                # 尝试绑定端口
+                s.bind(('0.0.0.0', port))
+                return f"Port {port} is available."
+            except OSError:
+                return f"Port {port} is currently occupied."
+    except Exception as e:
+        return f"Error checking port {port}: {str(e)}"
+

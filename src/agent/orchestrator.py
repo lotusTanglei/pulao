@@ -287,6 +287,120 @@ def get_session(config: Dict) -> AISession:
     return _CURRENT_SESSION
 
 
+def _perform_rag_search(instruction: str) -> str:
+    """执行 RAG 向量检索，返回历史经验上下文字符串"""
+    rag_context = ""
+    try:
+        vector_memory = init_vector_memory()
+        if vector_memory:
+            results = vector_memory.search_memory(instruction)
+            
+            # ChromaDB 返回结构: {'documents': [['mem1', 'mem2']], ...}
+            if results and results.get('documents') and len(results['documents'][0]) > 0:
+                memories = results['documents'][0]
+                # 过滤掉空的记忆
+                memories = [m for m in memories if m and m.strip()]
+                
+                if memories:
+                    console.print(f"[dim]Found {len(memories)} relevant memories.[/dim]")
+                    memory_text = "\n".join([f"- {m}" for m in memories])
+                    rag_context = f"\n\n[Relevant History / 历史经验]\n{memory_text}"
+                    logger.info(f"RAG retrieved {len(memories)} memories")
+    except Exception as e:
+        logger.warning(f"Failed to search vector memory: {e}")
+    return rag_context
+
+
+def _match_template(instruction: str) -> str:
+    """匹配本地模板库，返回包含模板的扩展指令，如果没有匹配则返回空字符串"""
+    template_content = None
+    tpl_name = ""
+    
+    # 遍历所有可用模板，检查名称是否出现在用户指令中
+    for name in LibraryManager.list_templates():
+        if name in instruction.lower():
+            tpl_name = name
+            template_content = LibraryManager.get_template(tpl_name)
+            if template_content:
+                console.print(f"[dim]Using built-in template for: {tpl_name}[/dim]")
+                break
+                
+    if template_content:
+        return f"\n\n[Template Context]\nHere is a reference docker-compose.yml for {tpl_name}. Please adapt it:\n```yaml\n{template_content}\n```"
+    return ""
+
+
+def _process_new_messages(session: AISession, new_messages: list):
+    """处理 LangGraph 返回的新消息并更新会话历史"""
+    import json
+    for msg in new_messages:
+        if isinstance(msg, AIMessage):
+            content = msg.content
+            tool_calls = msg.tool_calls
+            
+            if content:
+                console.print(f"\n[bold blue]AI:[/bold blue] {content}")
+            
+            if tool_calls:
+                 # We need to convert LangChain tool calls back to OpenAI format for Pulao history
+                 openai_tool_calls = []
+                 for tc in tool_calls:
+                     # Display
+                     args_str = ", ".join([f"{k}={v}" for k, v in tc["args"].items() if k != "yaml_content"])
+                     if "yaml_content" in tc["args"]:
+                         args_str += ", yaml_content=<...>"
+                     console.print(f"[bold cyan]Tool Call:[/bold cyan] {tc['name']}({args_str})")
+                     
+                     openai_tool_calls.append({
+                         "id": tc["id"],
+                         "type": "function",
+                         "function": {
+                             "name": tc["name"],
+                             "arguments": json.dumps(tc["args"])
+                         }
+                     })
+                 
+                 session.add_assistant_message(content, openai_tool_calls)
+            else:
+                # Just content
+                session.add_assistant_message(content)
+                
+        elif isinstance(msg, ToolMessage):
+            content = msg.content
+            tool_call_id = msg.tool_call_id
+            
+            # Display
+            log_res = str(content)
+            if len(log_res) > 200:
+                log_res = log_res[:200] + "..."
+            
+            console.print(f"[bold green]Tool Result:[/bold green] {log_res}")
+            session.add_tool_message(tool_call_id, content)
+
+
+def _save_memory_interaction(instruction: str, new_messages: list):
+    """将成功的交互保存到向量数据库中"""
+    if not new_messages:
+        return
+        
+    try:
+        last_msg = new_messages[-1]
+        summary = last_msg.content if isinstance(last_msg, AIMessage) else ""
+        
+        if not summary and isinstance(last_msg, ToolMessage):
+            summary = f"Tool executed: {last_msg.tool_call_id}"
+            
+        if summary:
+             if len(summary) > 500:
+                 summary = summary[:500] + "..."
+             vector_memory = init_vector_memory()
+             if vector_memory:
+                 vector_memory.add_memory(instruction, metadata={"result": summary})
+                 logger.info("Saved interaction to memory.")
+    except Exception as e:
+        logger.warning(f"Failed to save memory: {e}")
+
+
 # ============ 部署处理主函数 ============
 
 def process_deployment(instruction: str, config: dict):
@@ -302,71 +416,18 @@ def process_deployment(instruction: str, config: dict):
     参数:
         instruction: 用户输入的自然语言指令（如 "部署一个 Redis"）
         config: 应用程序配置字典
-    
-    ReAct 循环流程:
-        1. 发送用户指令和历史消息给 AI
-        2. AI 可能返回：
-           - 文本回答（直接显示给用户）
-           - 工具调用请求（需要执行工具）
-        3. 如果是工具调用：
-           - 显示工具名称和参数
-           - 对于危险操作（部署、执行命令）需要用户确认
-           - 执行工具并获取结果
-           - 将结果添加到历史，询问 AI 下一步
-        4. 重复直到 AI 返回最终答案或达到最大轮次（10 轮）
-    
-    异常:
-        KeyboardInterrupt: 用户取消请求
-        其他 Exception: AI 处理或工具执行错误
     """
     # 获取 AI 会话实例
     session = get_session(config)
 
-    # ============ RAG 检索 ============
-    rag_context = ""
-    try:
-        vector_memory = init_vector_memory()
-        results = vector_memory.search_memory(instruction)
-        
-        # ChromaDB 返回结构: {'documents': [['mem1', 'mem2']], ...}
-        if results and results.get('documents') and len(results['documents'][0]) > 0:
-            memories = results['documents'][0]
-            # 过滤掉空的记忆
-            memories = [m for m in memories if m and m.strip()]
-            
-            if memories:
-                console.print(f"[dim]Found {len(memories)} relevant memories.[/dim]")
-                memory_text = "\n".join([f"- {m}" for m in memories])
-                rag_context = f"\n\n[Relevant History / 历史经验]\n{memory_text}"
-                logger.info(f"RAG retrieved {len(memories)} memories")
-    except Exception as e:
-        logger.warning(f"Failed to search vector memory: {e}")
+    # 1. RAG 检索
+    rag_context = _perform_rag_search(instruction)
     
-    # ============ 模板检查 ============
-    # 检查用户的指令是否匹配模板库中的某个模板
-    # 例如用户说 "部署 Redis"，模板库中有 redis 模板
-    template_content = None
-    tpl_name = ""
+    # 2. 模板检查
+    template_context = _match_template(instruction)
     
-    # 遍历所有可用模板，检查名称是否出现在用户指令中
-    for name in LibraryManager.list_templates():
-        if name in instruction.lower():
-            tpl_name = name
-            template_content = LibraryManager.get_template(tpl_name)
-            if template_content:
-                console.print(f"[dim]Using built-in template for: {tpl_name}[/dim]")
-                break
-    
-    # 如果找到匹配的模板，将模板内容添加到指令中作为参考
-    final_instruction = instruction
-    if template_content:
-        final_instruction += f"\n\n[Template Context]\nHere is a reference docker-compose.yml for {tpl_name}. Please adapt it:\n```yaml\n{template_content}\n```"
-    
-    # 添加 RAG 检索结果
-    if rag_context:
-        final_instruction += rag_context
-    
-    # 添加用户消息到历史记录
+    # 3. 组装最终指令
+    final_instruction = instruction + template_context + rag_context
     session.add_user_message(final_instruction)
     
     # 提示用户正在发送请求
@@ -396,67 +457,10 @@ def process_deployment(instruction: str, config: dict):
         new_messages = all_messages[len(lc_messages):]
         
         # Process new messages to update history and print to console
-        for msg in new_messages:
-            if isinstance(msg, AIMessage):
-                content = msg.content
-                tool_calls = msg.tool_calls
-                
-                if content:
-                    console.print(f"\n[bold blue]AI:[/bold blue] {content}")
-                
-                if tool_calls:
-                     # We need to convert LangChain tool calls back to OpenAI format for Pulao history
-                     openai_tool_calls = []
-                     for tc in tool_calls:
-                         # Display
-                         args_str = ", ".join([f"{k}={v}" for k, v in tc["args"].items() if k != "yaml_content"])
-                         if "yaml_content" in tc["args"]:
-                             args_str += ", yaml_content=<...>"
-                         console.print(f"[bold cyan]Tool Call:[/bold cyan] {tc['name']}({args_str})")
-                         
-                         openai_tool_calls.append({
-                             "id": tc["id"],
-                             "type": "function",
-                             "function": {
-                                 "name": tc["name"],
-                                 "arguments": json.dumps(tc["args"])
-                             }
-                         })
-                     
-                     session.add_assistant_message(content, openai_tool_calls)
-                else:
-                    # Just content
-                    session.add_assistant_message(content)
-                    
-            elif isinstance(msg, ToolMessage):
-                content = msg.content
-                tool_call_id = msg.tool_call_id
-                
-                # Display
-                log_res = str(content)
-                if len(log_res) > 200:
-                    log_res = log_res[:200] + "..."
-                
-                console.print(f"[bold green]Tool Result:[/bold green] {log_res}")
-                session.add_tool_message(tool_call_id, content)
+        _process_new_messages(session, new_messages)
         
         # Memory Storage
-        if new_messages:
-            try:
-                last_msg = new_messages[-1]
-                summary = last_msg.content if isinstance(last_msg, AIMessage) else ""
-                
-                if not summary and isinstance(last_msg, ToolMessage):
-                    summary = f"Tool executed: {last_msg.tool_call_id}"
-                    
-                if summary:
-                     if len(summary) > 500:
-                         summary = summary[:500] + "..."
-                     vector_memory = init_vector_memory()
-                     vector_memory.add_memory(instruction, metadata={"result": summary})
-                     logger.info("Saved interaction to memory.")
-            except Exception as e:
-                logger.warning(f"Failed to save memory: {e}")
+        _save_memory_interaction(instruction, new_messages)
                 
     except KeyboardInterrupt:
         console.print(f"[yellow]{t('request_cancelled')}[/yellow]")

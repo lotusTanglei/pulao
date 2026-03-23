@@ -38,6 +38,7 @@ from src.core.logger import logger
 from src.core.config import CONFIG_DIR
 from src.tools.cluster.cluster import ClusterManager
 from src.tools.cluster.remote_ops import RemoteExecutor
+from src.tools.registry import registry
 
 console = Console()
 
@@ -54,58 +55,36 @@ class DiagnosticResult:
 
 # ============ 日志查看工具 ============
 
-def get_container_logs(
-    container_name: str,
-    lines: int = 100,
-    follow: bool = False,
-    since: Optional[str] = None,
-    host: Optional[str] = None
-) -> str:
+@registry.register
+def get_container_logs(container_name: str, tail: int = 50) -> str:
     """
     获取容器日志
     
     参数:
         container_name: 容器名称或ID
-        lines: 显示的日志行数（默认100行）
-        follow: 是否持续跟踪日志（默认False）
-        since: 显示指定时间之后的日志（如 "1h", "30m"）
-        host: 远程主机地址（可选，本地执行时为None）
+        tail: 显示的日志行数（默认50行）
     
     返回:
         日志内容字符串
     """
     try:
-        cmd = ["docker", "logs", "--tail", str(lines)]
+        cmd = ["docker", "logs", "--tail", str(tail), container_name]
         
-        if since:
-            cmd.extend(["--since", since])
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
         
-        if follow:
-            cmd.append("-f")
-        
-        cmd.append(container_name)
-        
-        if host:
-            # 远程执行
-            result = RemoteExecutor.execute_command(host, " ".join(cmd))
-            return result
+        if result.returncode == 0:
+            logs = result.stdout or result.stderr
+            if not logs:
+                return f"容器 {container_name} 暂无日志输出"
+            return logs
         else:
-            # 本地执行
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
+            return f"获取日志失败: {result.stderr}"
             
-            if result.returncode == 0:
-                logs = result.stdout or result.stderr
-                if not logs:
-                    return f"容器 {container_name} 暂无日志输出"
-                return logs
-            else:
-                return f"获取日志失败: {result.stderr}"
-                
     except subprocess.TimeoutExpired:
         return f"获取日志超时: 容器 {container_name} 可能正在持续输出大量日志"
     except Exception as e:
@@ -795,7 +774,7 @@ def diagnose_service(service_name: str, host: Optional[str] = None) -> Dict:
         report["recommendations"].extend(status_result.recommendations)
     
     # 2. 获取容器日志（最近50行）
-    logs = get_container_logs(service_name, lines=50, host=host)
+    logs = get_container_logs(service_name, tail=50)
     log_analysis = analyze_logs(logs)
     report["checks"].append({
         "name": "日志分析",

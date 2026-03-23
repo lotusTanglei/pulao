@@ -31,7 +31,7 @@ from functools import wraps
 from src.tools.docker.docker_ops import deploy_compose, deploy_cluster  # Docker 部署操作
 from src.tools.cluster.cluster import ClusterManager  # 集群管理
 from src.tools.utils.library_manager import LibraryManager  # 模板库管理
-from src.tools.system.system_ops import execute_shell_command  # Shell 命令执行
+from src.tools.system.system_ops import execute_shell_command, check_port_available as sys_check_port_available  # Shell 命令执行
 from src.core.logger import logger  # 日志记录
 
 
@@ -529,8 +529,28 @@ from src.tools.security.security_scan import (
     comprehensive_security_check,
     format_comprehensive_report,
     check_trivy_installed,
-    install_trivy_guide
+    install_trivy_guide,
+    scan_docker_image as run_scan_docker_image
 )
+
+
+@registry.register
+def scan_docker_image(image_name: str) -> str:
+    """
+    扫描 Docker 镜像获取高危和严重漏洞 (HIGH/CRITICAL)
+    
+    使用 Trivy 扫描镜像中的已知漏洞。
+    
+    参数:
+        image_name: 镜像名称（如 nginx:latest）
+    
+    返回:
+        漏洞扫描报告或错误信息
+    """
+    try:
+        return run_scan_docker_image(image_name)
+    except Exception as e:
+        return f"Exception: {str(e)}"
 
 
 @registry.register
@@ -795,7 +815,7 @@ def get_logs(container_name: str, lines: int = 100) -> str:
         日志内容字符串
     """
     try:
-        return get_container_logs(container_name, lines=lines)
+        return get_container_logs(container_name, tail=lines)
     except Exception as e:
         return f"Exception: {str(e)}"
 
@@ -1206,3 +1226,20 @@ def execute_command(command: str) -> str:
             return f"Stderr: {result.stderr}"
     except Exception as e:
         return f"Exception: {str(e)}"
+
+
+@registry.register
+def check_port_available(port: int) -> str:
+    """
+    检查本地机器上的端口是否可用
+    
+    使用 socket 模块检查指定的端口在本地是否可用（未被占用）。
+    
+    参数:
+        port: 要检查的端口号
+    
+    返回:
+        端口是否可用的状态信息（包含可用或被占用的明确信息）
+    """
+    return sys_check_port_available(port)
+
