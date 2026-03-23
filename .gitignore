@@ -30,6 +30,13 @@ var/
 venv/
 .env
 
+# Testing & Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
 # Project specific runtime data
 # Pulao uses ~/.pulao by default, but ignore local ones just in case
 chroma_db/
