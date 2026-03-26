@@ -1,7 +1,54 @@
+# IDE & Tooling
 .trae
+.vscode/
+.idea/
+.DS_Store
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
 venv/
 .env
-.DS_Store
+
+# Testing & Coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Project specific runtime data
+# Pulao uses ~/.pulao by default, but ignore local ones just in case
+chroma_db/
+history.json
+*.log
+
+# Local Documentation (Not to be tracked)
+docs/
+
+# Temporary / Planning Docs (from early stages)
+ARCHITECTURE.md
+GAP_ANALYSIS.md
+PLAN_AUTONOMOUS_DECISION.md
+TEST_CASES.md
+CHANGELOG.md

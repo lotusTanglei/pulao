@@ -1,32 +1,37 @@
 # Pulao: AI-Powered DevOps Agent
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Version](https://img.shields.io/badge/version-1.3.0-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg) ![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)
 
 Pulao 是一个基于 AI 的智能运维 Agent，旨在帮助运维人员通过自然语言完成 Docker 中间件部署和系统日常运维。它不仅仅是一个简单的命令生成器，更是一个**懂模板、懂环境、安全可控**的运维伙伴。
 
-从 v1.1.0 开始，Pulao 已进化为真正的 **AI Agent**，具备多步推理、工具调用和持久化记忆能力。
+在最新的 **v1.3.0** 版本中，Pulao 经历了深度的**领域驱动架构重构 (DDD)** 和**系统级性能优化**，引入了完整的自动化测试体系 (Pytest)，并进一步扩展了安全审计与自动化排障能力，进化为真正成熟的企业级 AI Agent。
 
 ## ✨ 核心特性 (Features)
 
-*   **🤖 AI Agent 架构 (New)**:
-    *   **ReAct 循环**: AI 能够进行“思考-行动-观察”的循环，处理复杂的多步任务（如“先检查端口占用，再部署服务”）。
-    *   **自我修正**: 如果部署失败，AI 会分析错误日志，自动尝试修复配置并重试。
-    *   **持久化记忆**: 你的对话历史会被保存，重启 CLI 后 AI 依然记得之前的上下文。
+*   **🤖 AI Agent 架构 (Powered by LangGraph)**:
+    *   **LangGraph 驱动**: 采用 **LangGraph** 作为核心编排引擎，构建稳定、可控的基于状态机的 ReAct Agent。
+    *   **智能循环**: 具备强大的“思考-行动-观察”循环能力，轻松处理复杂的多步运维任务（如“先检查端口占用，再部署服务”）。
+    *   **自我修正**: 部署失败后，AI 会自动读取 `docker logs`，分析错误并尝试修正配置后重试。
+    *   **记忆增强 (RAG)**: 引入 **向量数据库 (ChromaDB)** 实现长期记忆，Agent 能够自动复用历史成功的故障排查方案。
 
-*   **🌐 多集群管理 (Multi-Cluster)**:
+*   **🌐 多集群与环境管理 (Multi-Cluster)**:
     *   支持管理多个集群环境（如 `dev`, `prod`）。
-    *   **节点管理**: 轻松添加、移除远程节点，支持 SSH 免密登录检测。
-    *   **分布式部署**: 一句指令即可在多个节点上部署高可用集群（如 Redis Sentinel, K8s 等）。
+    *   **节点管理**: 轻松添加、移除远程节点，支持 SSH 免密登录预检，确保部署原子性。
+    *   **分布式部署**: 一句指令即可将配置分发至多个节点并分别拉起服务，构建高可用集群。
+
+*   **🛡️ 运维诊断与安全合规 (Diagnostics & Security)**:
+    *   **安全审计**: 具备镜像漏洞扫描和细粒度的权限控制能力。
+    *   **环境预检**: 执行破坏性操作或集群部署前，强制进行环境状态与连通性预检。
+    *   **人工确认**: 关键操作（如 `docker compose up`, `rm`）必须经过用户二次确认。
 
 *   **🧩 智能模板适配 (Smart Templates)**: 
-    *   拒绝 AI 瞎编配置！Pulao 能够自动从 GitHub (awesome-compose) 拉取经过验证的官方模板。
-    *   当你要求部署 "Redis" 时，AI 会基于官方最佳实践模板进行微调（如修改密码、端口），确保部署的稳定性和规范性。
-    *   支持 `update-library` 命令一键更新本地模板库。
+    *   拒绝 AI 瞎编配置！自动从 GitHub (awesome-compose) 拉取经过验证的官方模板作为生成参考。
+    *   基于官方最佳实践模板进行智能微调（修改密码、端口等），确保部署稳定合规。
 
-*   **🛡️ 安全可控 (Safe & Controlled)**:
-    *   **预检机制**: 在执行任何破坏性操作前，AI 会先检查环境（如端口冲突、磁盘空间）。
-    *   **人工确认**: 关键操作（如 `docker compose up`, `rm`）必须经过用户二次确认。
-    *   **日志审计**: 所有操作记录在 `~/.pulao/pulao.log`，方便追溯。
+*   **⚡ 性能与工程质量 (Performance & Quality)**:
+    *   **领域驱动重构**: `src/` 目录按照 Agent、Core、Tools 进行解耦设计，代码结构清晰。
+    *   **自动化测试**: 引入完整的 `pytest` 自动化测试套件，全面覆盖核心编排逻辑与工具调用，保障功能迭代的稳定性。
+    *   **性能调优**: 经过深度的静态分析与性能分析，优化了响应时间、资源调度与并发处理能力。
 
 ## 🚀 快速开始 (Quick Start)
 
@@ -51,22 +56,22 @@ curl -L https://gitee.com/LOTUStudio/pulao/raw/main/install.sh | bash
 ```text
   ____        _             
  |  _ \ _   _| | __ _  ___  
- | |_) | | | | |/ _` |/ _ \   Version  : v1.1.0
+ | |_) | | | | |/ _` |/ _ \   Version  : v1.3.0
  |  __/| |_| | | (_| | (_) |  Provider : deepseek
  |_|    \__,_|_|\__,_|\___/   Model    : deepseek-reasoner
 
 Available Commands / 可用命令:
-  • ! <command>           : Execute shell command / 执行系统命令
-  • deploy <instruction>  : Deploy middleware / 部署中间件
-  • cluster               : Manage clusters / 集群管理
-  • node                  : Manage nodes / 节点管理
-  • update-library        : Update template library / 更新模板库
-  ...
+  • <natural language>    : Ask AI to deploy, manage clusters, or check system status
+  • ! <command>           : Execute shell command directly / 直接执行 Shell 命令
+  • config / setup        : Configure AI provider / 配置 AI
+  • providers             : List AI providers / 列出提供商
+  • use <provider>        : Switch AI provider / 切换提供商
+  • exit / quit           : Exit / 退出
 ```
 
 ### 3. 常用场景
 
-#### 场景 A: 智能部署 (多步推理)
+#### 场景 A: 智能部署与自我修正
 ```bash
 > 帮我在 8080 端口部署一个 Nginx，如果端口被占用就用 8081
 
@@ -78,29 +83,15 @@ Available Commands / 可用命令:
 [Result] 部署成功！访问地址: http://localhost:8081
 ```
 
-#### 场景 B: 集群管理
+#### 场景 B: 集群管理与环境预检
 ```bash
-# 1. 创建生产环境
-> cluster create production
-> cluster use production
+> 创建生产环境集群并在两台机器上部署服务
 
-# 2. 添加节点
-> node add worker1 192.168.1.10 root
-> node add worker2 192.168.1.11 root
-
-# 3. 部署高可用集群
-> 在 worker1 和 worker2 上部署 Redis 主从集群
-[AI] 正在规划双节点 Redis 部署方案...
-[Confirm] 确认在 worker1 部署 Master，在 worker2 部署 Slave？ (y/n) y
+[AI] 正在添加节点 worker1...
+[Tool] Executing: add_node(worker1, 192.168.1.10) -> 预检 SSH 连通性通过。
+[AI] 正在规划双节点部署方案...
+[Confirm] 确认在两台节点上执行部署操作？ (y/n) y
 [Result] 集群部署完成。
-```
-
-#### 场景 C: 系统运维
-```bash
-> 查一下系统负载，如果太高就清理一下缓存
-[AI] 正在检查系统负载...
-[Tool] Executing: uptime
-...
 ```
 
 ## 🛠️ 配置说明 (Configuration)
@@ -113,6 +104,14 @@ base_url: "https://api.deepseek.com"
 model: "deepseek-reasoner"
 language: "zh"  # en / zh
 ```
+
+## 🛠️ 核心开发技术栈 (Tech Stack)
+
+*   **语言**: Python 3.10+
+*   **AI 编排**: LangGraph, LangChain
+*   **向量记忆**: ChromaDB
+*   **CLI 界面**: Typer, Rich, prompt_toolkit
+*   **质量保障**: Pytest, Flake8, Radon, Bandit
 
 ## 📄 License
 

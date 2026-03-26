@@ -186,6 +186,11 @@ source "$INSTALL_DIR/venv/bin/activate"
 # 7. Install Python Dependencies
 echo "$MSG_DEPS"
 pip install --upgrade pip
+# Ensure sqlite3 is available for ChromaDB (some minimal systems might miss it)
+if ! python3 -c "import sqlite3" &> /dev/null; then
+    echo "⚠️  sqlite3 module missing. Installing libsqlite3-dev..."
+    apt-get install -y libsqlite3-dev
+fi
 pip install -r "$INSTALL_DIR/requirements.txt"
 
 # 8. Create executable wrapper
