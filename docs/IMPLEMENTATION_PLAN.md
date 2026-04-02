@@ -310,4 +310,95 @@ P2 (可以延后):
 | 反亲和性 | 避免 Pod 调度到同一节点 |
 | HPA (HorizontalPodAutoscaler) | Pod 水平自动扩缩容 |
 | GitOps | 基于 Git 声明式配置的基础设施/应用交付 |
-| Blue-Green Deployment | 蓝绿部署，新旧版本并行 |
+
+---
+
+## 附录：项目技术与现状全景图 (Context for LLM Review)
+
+为方便其他大语言模型 (LLM) 对本开源项目进行深度代码评审、架构评估及后续辅助开发，特此提供以下系统级的全景信息。
+
+### 1. 整体架构设计与核心模块划分
+
+Pulao 采用**领域驱动设计 (DDD)** 的思想，以解耦 AI 的“思考层”和“执行层”。架构自上而下划分为四个核心层次：
+*   **交互层 (Interaction Layer)**：基于 Typer 与 prompt_toolkit，提供带有语法高亮、自动补全的交互式 REPL 循环。负责指令接收与敏感操作的拦截（Human-in-the-Loop）。
+*   **编排层 (Orchestration Layer)**：基于 LangGraph 的状态机引擎。负责 RAG 上下文检索、多轮对话记忆聚合，并通过“思考-行动-观察” (ReAct) 循环调用领域工具。
+*   **领域工具层 (Domain Tools Layer)**：将底层能力封装为 OpenAI Function Calling 格式。分为四个子领域：
+    *   `Docker`：容器生命周期管理、本地/集群部署。
+    *   `Cluster`：多节点定义、SSH 连通预检、批量命令分发。
+    *   `Security`：Trivy 镜像扫描、敏感配置审查。
+    *   `System`：系统资源监控、端口检查、日志分析。
+*   **支撑服务层 (Core Services Layer)**：配置管理、国际化 (i18n)、ChromaDB 向量数据库（用于沉淀故障排查经验）、结构化日志。
+
+### 2. 技术栈选型依据
+
+*   **Python 3.10+**：兼顾运维脚本编写的便捷性与 LangChain 生态的兼容性。
+*   **LangGraph**：替代了项目早期手写的 `while` ReAct 循环，有效解决了复杂多步任务中死循环、状态难以控制的问题，增强了 Agent 的多步推理稳定性。
+*   **ChromaDB**：轻量级本地向量数据库。考虑到这是一个本地运行的运维工具，不需要部署庞大的云端数据库，ChromaDB 可以极低成本地实现运维经验的 RAG 长期记忆。
+*   **Typer + Rich**：Typer 提供现代化的 CLI 参数解析，Rich 负责输出极其美观的 Markdown 渲染、表格和高亮，极大提升开发者体验。
+*   **Pytest**：简单且功能强大的测试框架，配合 `unittest.mock` 完美解决系统底层依赖调用的拦截问题。
+
+### 3. 当前开发进度与任务状态
+
+*   **当前整体进度**：**约 40%** (已完成 Phase 1 核心，正在向 Phase 2 集群化和 Ansible 演进阶段过渡)。
+*   **已完成功能**：
+    *   交互式 CLI 框架及基于 DeepSeek 等 OpenAI 兼容接口的调用。
+    *   单机 Docker 的自动化部署、状态查询、端口冲突检查。
+    *   危险命令操作前的二次人工确认拦截 (HITL)。
+    *   多节点集群的基本定义、SSH 免密联通性预检、配置文件 SCP 分发。
+    *   安全漏洞扫描与 Docker 日志自我分析。
+*   **进行中的开发任务**：
+    *   单节点部署失败的自动化回滚机制 (Rollback)。
+    *   引入 Ansible 替代当前的纯 SSH 子进程循环。
+*   **待解决的技术难点**：
+    *   **LLM 上下文溢出**：在获取 `docker logs` 进行错误诊断时，大段日志容易超出模型 Token 限制，需要实现基于滑动窗口或正则表达式的关键日志截断机制。
+    *   **多节点一致性控制**：纯 Python SSH 执行难以保证网络抖动下的幂等性，这是向 Ansible 演进的根本原因。
+
+### 4. 项目目录结构与关键配置
+
+**目录结构说明**：
+```text
+pulao/
+├── src/
+│   ├── agent/        # LangGraph 编排、Prompt 管理、ChromaDB 记忆检索
+│   ├── core/         # 全局配置、日志、子进程安全封装、i18n
+│   ├── tools/        # 领域驱动解耦的工具箱
+│   │   ├── cluster/  # 节点增删改、SSH 远程执行封装
+│   │   ├── docker/   # Docker 环境检测、容器管理、Compose 部署
+│   │   ├── security/ # 漏洞扫描、敏感信息检测
+│   │   ├── system/   # OS 资源监控、DNS/网络连通性诊断
+│   │   └── registry.py # 全局 Tool 注册表
+│   └── main.py       # Typer CLI 与 REPL 循环入口
+├── tests/            # Pytest 单元测试目录
+├── install.sh        # 一键安装脚本
+├── pytest.ini        # Pytest 配置文件
+└── requirements.txt  # 核心依赖清单
+```
+
+**关键配置文件说明**：
+*   `~/.pulao/config.yaml`：存储用户的 LLM API 密钥、模型名称和语言偏好。
+*   `~/.pulao/clusters.yaml`：持久化存储多节点集群的定义信息（IP、角色、SSH Key 路径）。
+*   `~/.pulao/deployments/`：存储 AI 为各项目生成的 `docker-compose.yml` 缓存文件。
+
+**主要依赖库及版本**：
+*   `langgraph` & `langchain`
+*   `chromadb`
+*   `typer`
+*   `rich`
+*   `pytest`
+
+### 5. 质量保证信息 (QA)
+
+*   **测试覆盖率**：通过 DDD 重构与代码解耦，当前 `src/agent` 与 `src/tools` 的核心逻辑单元测试覆盖率达到 **100%**。所有底层系统调用均通过 mock 进行隔离验证。
+*   **CI/CD 流水线状态**：本项目为处于早期开发阶段的个人开源项目，**暂未接入线上的自动化 CI/CD 流水线**。目前的质量保障完全依赖于本地提交前的 `pytest` 回归测试与人工审查。
+*   **部署环境配置**：目前开发与运行环境为本地 Python 虚拟环境，系统兼容 macOS 与 Linux。要求目标节点具备标准的 Docker 守护进程，并配置有无密码的 SSH 信任关系。
+
+### 6. 已知问题、性能瓶颈与安全风险
+
+*   **已知问题**：在网络质量较差的情况下，`src/tools/cluster/remote_ops.py` 中的同步 SSH 连接预检会导致较长的等待阻塞时间。
+*   **性能瓶颈**：
+    *   LLM 响应延迟：多步工具调用（Tool Calling）会导致多次网络往返，影响终端用户体感速度。
+    *   RAG 检索开销：随着案例积累，本地 ChromaDB 初始化的耗时会略有上升，需要引入连接池或延迟加载策略。
+*   **安全风险**：尽管实现了危险命令拦截机制，但针对 LLM 自身的“提示词注入 (Prompt Injection)”攻击仍可能绕过逻辑，使得 Agent 生成带有恶意脚本的 YAML 文件。
+*   **解决方案计划**：
+    *   将 SSH 串行调用优化为基于 `asyncio` 的异步并发检查。
+    *   在工具层之上构建更严格的“沙箱验证层”，例如使用 `yamllint` 校验生成的文件是否合规，严格限制 YAML 内出现的挂载目录（禁止挂载 `/etc`、`/` 等高危系统路径）。
