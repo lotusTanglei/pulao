@@ -25,6 +25,7 @@ AI 核心处理模块
 # ============ 标准库导入 ============
 import re
 import json
+import uuid
 from typing import Optional, List, Dict
 
 # ============ 第三方库导入 ============
@@ -447,9 +448,21 @@ def process_deployment(instruction: str, config: dict):
     try:
         # Convert history
         lc_messages = convert_history_to_messages(session.history)
-        
-        # Run graph
-        inputs = {"messages": lc_messages}
+
+        # Generate trace ID for audit logging
+        trace_id = f"trace_{uuid.uuid4().hex[:12]}"
+        session_id = f"sess_{uuid.uuid4().hex[:8]}"
+
+        # Run graph with security framework state
+        inputs = {
+            "messages": lc_messages,
+            "trace_id": trace_id,
+            "session_id": session_id,
+            "execution_plan": None,
+            "confirmed": False,
+            "denied_reason": None,
+            "audit_events": []
+        }
         result = app.invoke(inputs)
         
         # Get new messages
