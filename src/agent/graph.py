@@ -31,6 +31,7 @@ from src.core.policy_store import PolicyStore
 from src.core.dry_run import DryRunExecutor, ExecutionPlan
 from src.core.hitl import HITLController
 from src.core.audit import AuditLogger
+from src.core.confidence import ConfidenceEvaluator, ConfidenceResult
 from src.core.logger import logger
 
 
@@ -47,6 +48,7 @@ class AgentState(TypedDict):
     confirmed: bool                            # 用户是否已确认
     denied_reason: Optional[str]               # 拒绝原因
     audit_events: List[str]                    # 审计事件 ID 列表
+    confidence_result: Optional[ConfidenceResult]  # 置信度评估结果
 
 
 # ============ 安全组件实例 ============
@@ -85,7 +87,18 @@ def create_langchain_tools() -> List[StructuredTool]:
 def agent_node(state: AgentState, model) -> dict:
     """Agent 推理节点"""
     response = model.invoke(state["messages"])
-    return {"messages": [response]}
+
+    # 解析置信度（从 AI 文本响应中）
+    confidence_result = None
+    if hasattr(response, 'content') and response.content:
+        confidence_result = ConfidenceEvaluator.parse_confidence(response.content)
+        if confidence_result.score < 0.85:  # 只记录低于默认值的情况
+            logger.info(f"AI confidence: {confidence_result.score}, reasoning: {confidence_result.reasoning[:100]}")
+
+    return {
+        "messages": [response],
+        "confidence_result": confidence_result
+    }
 
 
 def route_node(state: AgentState) -> str:
@@ -142,6 +155,7 @@ def preview_node(state: AgentState) -> dict:
 def hitl_node(state: AgentState) -> dict:
     """人工确认节点"""
     plan = state["execution_plan"]
+    confidence = state.get("confidence_result")
 
     # 检查 DENY
     for step in plan.steps:
@@ -151,8 +165,8 @@ def hitl_node(state: AgentState) -> dict:
                 "denied_reason": step.risk_assessment.reason
             }
 
-    # 用户确认
-    approved = HITLController.confirm(plan)
+    # 用户确认（传入置信度信息）
+    approved = HITLController.confirm(plan, confidence)
 
     logger.info(f"HITL confirmation: {'approved' if approved else 'rejected'}")
 

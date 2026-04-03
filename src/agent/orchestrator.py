@@ -461,7 +461,8 @@ def process_deployment(instruction: str, config: dict):
             "execution_plan": None,
             "confirmed": False,
             "denied_reason": None,
-            "audit_events": []
+            "audit_events": [],
+            "confidence_result": None
         }
         result = app.invoke(inputs)
         

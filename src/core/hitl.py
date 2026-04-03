@@ -7,10 +7,12 @@
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from rich.text import Text
 from typing import Optional, List
 
 from .dry_run import ExecutionPlan, ExecutionStep
 from .risk_guard import RiskLevel, RiskDecision
+from .confidence import ConfidenceResult, ConfidenceEvaluator
 
 
 console = Console()
@@ -36,12 +38,13 @@ class HITLController:
     }
 
     @classmethod
-    def confirm(cls, plan: ExecutionPlan) -> bool:
+    def confirm(cls, plan: ExecutionPlan, confidence: ConfidenceResult = None) -> bool:
         """
         展示执行计划并等待用户确认
 
         Args:
             plan: 执行计划
+            confidence: AI 置信度评估结果（可选）
 
         Returns:
             True: 用户确认执行
@@ -54,6 +57,10 @@ class HITLController:
             title="📋 执行计划预览",
             border_style="blue"
         ))
+
+        # 显示置信度信息
+        if confidence:
+            cls._print_confidence(confidence)
 
         # 整体风险
         icon, color = cls.RISK_ICONS.get(plan.total_risk, ("⚪", "white"))
@@ -93,6 +100,37 @@ class HITLController:
             # 高风险显示原因
             if step.risk_assessment.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
                 console.print(f"     [dim]⚠️  {step.risk_assessment.reason}[/dim]")
+
+    @classmethod
+    def _print_confidence(cls, confidence: ConfidenceResult):
+        """打印置信度信息"""
+        level = ConfidenceEvaluator.get_confidence_level(confidence.score)
+        is_low = ConfidenceEvaluator.is_low_confidence(confidence.score)
+
+        # 置信度颜色
+        if confidence.score >= 0.8:
+            color = "green"
+        elif confidence.score >= 0.6:
+            color = "yellow"
+        else:
+            color = "red"
+
+        console.print(f"\n[bold]AI 置信度:[/bold] [{color}]{confidence.score:.0%} ({level})[/{color}]")
+
+        # 显示推理过程（截断）
+        if confidence.reasoning and confidence.reasoning != "AI 未提供推理过程":
+            reasoning_text = confidence.reasoning[:200]
+            if len(confidence.reasoning) > 200:
+                reasoning_text += "..."
+            console.print(f"[dim]推理: {reasoning_text}[/dim]")
+
+        # 低置信度时显示替代方案
+        if is_low and confidence.alternatives:
+            console.print("\n[yellow]💡 AI 建议的替代方案:[/yellow]")
+            for i, alt in enumerate(confidence.alternatives[:3], 1):  # 最多显示3个
+                console.print(f"  {i}. [{cyan}]{alt.tool_name}[/{cyan}] (置信度: {alt.confidence:.0%})")
+                if alt.description:
+                    console.print(f"     [dim]{alt.description[:100]}[/dim]")
 
     @classmethod
     def _wait_confirmation(cls, step_count: int) -> bool:

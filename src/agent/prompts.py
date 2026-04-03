@@ -151,9 +151,22 @@ The following is the real-time information of the Local Server and Cluster Nodes
 """
         },
         "output_format": """Output Format:
-Use Function Calling (Tools) for actions. 
-If you need to ask a question to the user, just output the question as plain text. 
+Use Function Calling (Tools) for actions.
+If you need to ask a question to the user, just output the question as plain text.
 **Do NOT output JSON blocks like {"type": "question"}.**
+
+**Confidence Output (Optional):**
+When performing operations that may have significant impact, include your confidence level:
+<confidence>0.85</confidence>
+<reasoning>Brief explanation of your confidence assessment</reasoning>
+<alternatives>
+{"tool": "alternative_action", "confidence": 0.90, "description": "Why this might be better"}
+</alternatives>
+
+Include confidence tags when:
+- The operation affects production systems
+- You're uncertain about the best approach
+- Multiple valid solutions exist
 """
     },
     
@@ -260,6 +273,19 @@ If you need to ask a question to the user, just output the question as plain tex
 请使用函数调用 (Tools) 执行操作。
 如果需要向用户提问，请直接输出纯文本问题。
 **严禁输出 {"type": "question", ...} 这种 JSON 格式！**
+
+**置信度输出（可选）:**
+当执行可能产生重大影响的操作时，请在响应中包含置信度评估：
+<confidence>0.85</confidence>
+<reasoning>简要说明你的置信度评估依据</reasoning>
+<alternatives>
+{"tool": "替代操作名称", "confidence": 0.90, "description": "为什么这个方案可能更好"}
+</alternatives>
+
+在以下情况包含置信度标签：
+- 操作会影响生产环境
+- 对最佳方案不确定
+- 存在多种可行方案
 """
     }
 }
