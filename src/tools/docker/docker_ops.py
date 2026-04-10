@@ -63,25 +63,32 @@ class DeploymentError(Exception):
 
 # ============ 本机部署函数 ============
 
-def deploy_compose(yaml_content: str, project_name: str = "default") -> DeploymentResult:
+def deploy_compose(
+    yaml_content: str,
+    project_name: str = "default",
+    enable_rollback: bool = True
+) -> DeploymentResult:
     """
-    本机 Docker Compose 部署
-    
+    本机 Docker Compose 部署（支持自动回滚）
+
     将 AI 生成的 docker-compose.yml 内容写入文件，并在本机执行部署。
-    
+
     执行流程：
         1. 清理项目名称（只保留安全字符）
         2. 创建项目目录
-        3. 写入 docker-compose.yml 文件
-        4. 执行 docker compose up -d 启动服务
-    
+        3. 创建部署快照（用于回滚）
+        4. 写入 docker-compose.yml 文件
+        5. 执行 docker compose up -d 启动服务
+        6. 失败时自动回滚
+
     参数:
         yaml_content: docker-compose.yml 的内容字符串
         project_name: 项目名称，用于目录命名（默认 "default"）
-    
+        enable_rollback: 是否启用自动回滚（默认 True）
+
     返回:
         DeploymentResult 对象，包含部署结果信息
-    
+
     异常:
         DeploymentError: 部署过程中的错误
     """
@@ -90,39 +97,58 @@ def deploy_compose(yaml_content: str, project_name: str = "default") -> Deployme
     safe_name = "".join([c for c in project_name if c.isalnum() or c in "-_"]).strip()
     if not safe_name:
         safe_name = "default"
-        
+
     # 构建项目目录路径
     project_dir = DEPLOY_DIR / safe_name
     project_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # docker-compose 文件路径
     compose_file = project_dir / "docker-compose.yml"
-    
+
+    # 快照 ID（用于回滚）
+    snapshot_id = None
+
     try:
-        # 步骤1: 写入 docker-compose.yml 文件
+        # 步骤1: 创建部署前快照
+        if enable_rollback:
+            from src.core.rollback import get_rollback_manager
+            rollback_mgr = get_rollback_manager()
+
+            # 读取现有 compose 文件（如果存在）
+            existing_compose = ""
+            if compose_file.exists():
+                with open(compose_file, "r", encoding="utf-8") as f:
+                    existing_compose = f.read()
+
+            # 只有存在现有部署时才创建快照
+            if existing_compose:
+                snapshot_id = rollback_mgr.create_snapshot(safe_name, existing_compose)
+                logger.info(f"Created pre-deployment snapshot: {snapshot_id}")
+
+        # 步骤2: 写入 docker-compose.yml 文件
         with open(compose_file, "w", encoding="utf-8") as f:
             f.write(yaml_content)
-        
+
         logger.info(f"Written compose file to {compose_file}")
-        
-        # 步骤2: 执行 docker compose up
+
+        # 步骤3: 执行 docker compose up
         logger.info(f"Executing docker compose in {project_dir}")
-        
+
         # 使用 docker compose 命令（新版本 Docker）
         cmd = ["docker", "compose", "up", "-d", "--remove-orphans"]
-        
+
         # 执行命令
         process = subprocess.Popen(
-            cmd, 
-            cwd=project_dir, 
-            stdout=subprocess.PIPE, 
+            cmd,
+            cwd=project_dir,
+            stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
-        
+
         # 等待命令执行完成，获取输出
         stdout, stderr = process.communicate()
-        
+
         if process.returncode == 0:
             # 部署成功
             logger.info("Local deployment success")
@@ -134,14 +160,46 @@ def deploy_compose(yaml_content: str, project_name: str = "default") -> Deployme
         else:
             # 部署失败
             logger.error(f"Local deployment failed: {stderr}")
+
+            # 自动回滚
+            if enable_rollback and snapshot_id:
+                logger.info(f"Attempting automatic rollback with snapshot: {snapshot_id}")
+                from src.core.rollback import get_rollback_manager
+                rollback_mgr = get_rollback_manager()
+
+                if rollback_mgr.rollback(snapshot_id):
+                    logger.info("Rollback completed successfully")
+                    return DeploymentResult(
+                        success=False,
+                        message=f"{t('deployment_failed')} (rolled back successfully)",
+                        stderr=stderr
+                    )
+                else:
+                    logger.error("Rollback failed")
+                    return DeploymentResult(
+                        success=False,
+                        message=f"{t('deployment_failed')} (rollback also failed)",
+                        stderr=stderr
+                    )
+
             return DeploymentResult(
                 success=False,
                 message=t('deployment_failed'),
                 stderr=stderr
             )
-            
+
     except Exception as e:
         logger.error(f"Error executing compose: {e}")
+
+        # 异常时也尝试回滚
+        if enable_rollback and snapshot_id:
+            try:
+                from src.core.rollback import get_rollback_manager
+                rollback_mgr = get_rollback_manager()
+                rollback_mgr.rollback(snapshot_id)
+            except Exception as rb_error:
+                logger.error(f"Rollback error: {rb_error}")
+
         raise DeploymentError(f"{t('error_executing_compose')} {e}")
 
 

@@ -35,8 +35,6 @@ else
 fi
 
 if [ "$LANG_CHOICE" == "2" ]; then
-    # Use Gitee for China users
-    REPO_URL="https://gitee.com/LOTUStudio/pulao/repository/archive/main.zip"
     LANG="zh"
     MSG_START="🚀 开始安装 $APP_NAME..."
     MSG_ROOT="请以 root 身份运行 (sudo ./install.sh)"
@@ -207,9 +205,6 @@ chmod +x "/usr/local/bin/$BIN_NAME"
 # 9. Initialize Template Library
 if [ "$INSTALL_LANG" == "zh" ]; then
     echo "📚 正在初始化模板库..."
-    # Force zh_CN for the python script to pick up Gitee if system locale is not zh
-    # But only if LANG is not already zh
-    export LANG="zh_CN.UTF-8"
 else
     echo "📚 Initializing template library..."
 fi

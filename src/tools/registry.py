@@ -1074,7 +1074,7 @@ def update_template_library() -> str:
     """
     更新 Docker Compose 模板库
     
-    从 GitHub/Gitee 拉取最新的服务模板。
+    从 GitHub 拉取最新的服务模板。
     
     返回:
         操作结果消息

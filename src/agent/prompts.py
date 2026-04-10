@@ -87,12 +87,13 @@ Process:
    - `security_audit` (comprehensive security audit)
 
    **Knowledge Base:**
-   - `save_experience` (save deployment experience)
-   - `save_case` (save troubleshooting case)
-   - `search_kb` (search knowledge base)
-   - `list_kb` (list knowledge entries)
-   - `kb_stats` (knowledge base statistics)
-   - `export_kb` (export knowledge base)
+   - `save_experience` (save deployment experience to library)
+   - `search_experience` (semantic search in experience library)
+   - `list_experiences` (list all experiences with pagination)
+   - `export_experiences` (export experiences to JSON for sharing)
+   - `import_experiences` (import experiences from JSON)
+   - `experience_stats` (view experience library statistics)
+   - `delete_experience` (delete an experience)
 
    **GitOps:**
    - `init_gitops` (initialize GitOps workflow)

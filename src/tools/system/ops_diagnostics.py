@@ -56,35 +56,50 @@ class DiagnosticResult:
 # ============ 日志查看工具 ============
 
 @registry.register
-def get_container_logs(container_name: str, tail: int = 50) -> str:
+def get_container_logs(
+    container_name: str,
+    tail: int = 100,
+    truncate: bool = True,
+    max_chars: int = 8000
+) -> str:
     """
-    获取容器日志
-    
+    获取容器日志（自动截断防止上下文溢出）
+
     参数:
         container_name: 容器名称或ID
-        tail: 显示的日志行数（默认50行）
-    
+        tail: 显示的日志行数（默认100行）
+        truncate: 是否启用智能截断（默认True）
+        max_chars: 最大字符数限制（默认8000）
+
     返回:
         日志内容字符串
     """
     try:
         cmd = ["docker", "logs", "--tail", str(tail), container_name]
-        
+
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
             timeout=30
         )
-        
+
         if result.returncode == 0:
             logs = result.stdout or result.stderr
             if not logs:
                 return f"容器 {container_name} 暂无日志输出"
+
+            # 智能截断
+            if truncate and len(logs) > max_chars:
+                from src.core.log_truncation import truncate_logs
+                trunc_result = truncate_logs(logs, max_chars=max_chars)
+                logger.info(f"Log truncated: {trunc_result.original_lines} -> kept key lines")
+                return trunc_result.content
+
             return logs
         else:
             return f"获取日志失败: {result.stderr}"
-            
+
     except subprocess.TimeoutExpired:
         return f"获取日志超时: 容器 {container_name} 可能正在持续输出大量日志"
     except Exception as e:

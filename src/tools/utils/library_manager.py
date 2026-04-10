@@ -8,7 +8,7 @@ Docker Compose 模板库管理器
 
 模板来源：
 - 内置模板：位于 src/library 目录（打包在项目中）
-- 用户模板：从 GitHub/Gitee 仓库克隆到 ~/.pulao/library
+- 用户模板：从 GitHub 仓库克隆到 ~/.pulao/library
 
 模板搜索策略：
 1. 精确匹配：文件夹名称与请求的服务名完全一致
@@ -16,14 +16,12 @@ Docker Compose 模板库管理器
 
 仓库地址：
 - GitHub: https://github.com/lotusTanglei/posehub.git
-- Gitee: https://gitee.com/LOTUStudio/posehub.git
 """
 
 # ============ 标准库导入 ============
 import os
 import shutil
 import subprocess
-import locale
 from pathlib import Path
 from typing import Optional, List
 
@@ -42,11 +40,10 @@ USER_LIBRARY_DIR = Path.home() / ".pulao" / "library"
 BUILTIN_LIBRARY_DIR = Path(__file__).parent / "library"
 
 # Git 仓库地址
-REPO_ZH = "https://gitee.com/LOTUStudio/posehub.git"  # Gitee（国内加速）
-REPO_EN = "https://github.com/lotusTanglei/posehub.git"  # GitHub
+REPO_URL = "https://github.com/lotusTanglei/posehub.git"
 
 # ============ 本地模块导入 ============
-from src.core.config import load_config, CONFIG_DIR  # 配置加载
+from src.core.config import CONFIG_DIR  # 配置加载
 
 
 # ============ 模板库管理器类 ============
@@ -87,45 +84,6 @@ class LibraryManager:
             return USER_LIBRARY_DIR
         return BUILTIN_LIBRARY_DIR
 
-    # ============ 仓库地址获取方法 ============
-    
-    @staticmethod
-    def _get_repo_url() -> str:
-        """
-        根据配置或系统语言获取 Git 仓库地址
-        
-        获取优先级：
-        1. 配置文件中的 language 设置
-        2. 环境变量 LANG
-        3. 系统默认语言
-        
-        如果语言包含 "zh" 或 "cn"，返回 Gitee 地址，否则返回 GitHub 地址。
-        
-        返回:
-            Git 仓库 URL
-        """
-        try:
-            # 步骤1: 检查配置文件
-            cfg = load_config()
-            lang = cfg.get("language", "")
-            
-            # 步骤2: 回退到环境变量
-            if not lang:
-                lang = os.environ.get('LANG', '')
-            
-            # 步骤3: 回退到系统语言
-            if not lang:
-                lang_code, _ = locale.getdefaultlocale()
-                if lang_code:
-                    lang = lang_code
-            
-            # 根据语言选择仓库
-            if lang and ('zh' in lang.lower() or 'cn' in lang.lower()):
-                return REPO_ZH
-        except Exception:
-            pass
-        return REPO_EN
-
     # ============ 模板更新方法 ============
     
     @staticmethod
@@ -134,16 +92,12 @@ class LibraryManager:
         更新模板库
         
         执行流程：
-        1. 获取仓库 URL（根据语言设置）
-        2. 检查用户目录是否存在
-        3a. 如果存在：
+        1. 检查用户目录是否存在
+        2a. 如果存在：
             - 如果是 git 仓库且 URL 匹配，执行 git pull
             - 如果 URL 不匹配，备份旧目录并重新克隆
             - 如果不是 git 仓库，备份并重新克隆
-        3b. 如果不存在，直接克隆
-        
-        失败处理：
-        - 如果 GitHub 克隆失败，自动尝试 Gitee 镜像
+        2b. 如果不存在，直接克隆
         
         注意:
             - 使用 --depth=1 浅克隆，减少下载量
@@ -153,7 +107,7 @@ class LibraryManager:
             操作结果消息
         """
         USER_LIBRARY_DIR = CONFIG_DIR / "library"
-        repo_url = LibraryManager._get_repo_url()
+        repo_url = REPO_URL
         console.print(f"[bold cyan]Updating template library from {repo_url}...[/bold cyan]")
         
         try:
@@ -202,28 +156,6 @@ class LibraryManager:
             return msg
             
         except subprocess.CalledProcessError as e:
-            # GitHub 失败时尝试 Gitee 镜像
-            if repo_url == REPO_EN:
-                console.print(f"[bold red]Failed to update from GitHub. Trying Gitee fallback...[/bold red]")
-                try:
-                    # 清理部分克隆的残留
-                    if USER_LIBRARY_DIR.exists() and not (USER_LIBRARY_DIR / ".git").exists():
-                         shutil.rmtree(str(USER_LIBRARY_DIR))
-                    
-                    # 如果目录存在但为空，删除它
-                    if USER_LIBRARY_DIR.exists():
-                        if not os.listdir(str(USER_LIBRARY_DIR)):
-                            os.rmdir(str(USER_LIBRARY_DIR))
-                    
-                    # 尝试从 Gitee 克隆
-                    console.print(f"[dim]Cloning from {REPO_ZH}...[/dim]")
-                    subprocess.run(["git", "clone", "--depth", "1", REPO_ZH, str(USER_LIBRARY_DIR)], check=True)
-                    msg = "Library updated successfully (using Gitee mirror)!"
-                    console.print(f"[bold green]{msg}[/bold green]")
-                    return msg
-                except Exception as e2:
-                    console.print(f"[bold red]Fallback failed:[/bold red] {e2}")
-
             msg = f"Failed to update library: {e}"
             console.print(f"[bold red]{msg}[/bold red]")
             return msg

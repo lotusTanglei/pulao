@@ -40,7 +40,7 @@ from src.agent.prompts import get_system_prompt  # 获取 AI 系统提示词
 from src.core.i18n import t  # 国际化翻译函数
 from src.tools.utils.library_manager import LibraryManager  # 模板库管理
 from src.core.logger import logger  # 日志记录
-from src.agent.memory import MemoryManager, init_vector_memory  # 内存/历史记录管理
+from src.agent.memory import MemoryManager, init_vector_memory, init_experience_library  # 内存/历史记录管理
 from src.agent.graph import create_agent_app  # LangGraph Agent App
 
 # 创建 Rich 控制台对象，用于彩色输出
@@ -292,16 +292,36 @@ def _perform_rag_search(instruction: str) -> str:
     """执行 RAG 向量检索，返回历史经验上下文字符串"""
     rag_context = ""
     try:
+        # 优先使用新的经验库
+        from src.agent.memory import init_experience_library
+        exp_lib = init_experience_library()
+        if exp_lib:
+            results = exp_lib.search(query=instruction, top_k=3)
+
+            if results:
+                console.print(f"[dim]Found {len(results)} relevant experiences.[/dim]")
+                exp_text = "\n".join([
+                    f"- [{e.category}] {e.content[:200]}{'...' if len(e.content) > 200 else ''}"
+                    for e in results
+                ])
+                rag_context = f"\n\n[Relevant Experience / 相关经验]\n{exp_text}"
+                logger.info(f"RAG retrieved {len(results)} experiences")
+                return rag_context
+    except Exception as e:
+        logger.debug(f"ExperienceLibrary not available: {e}")
+
+    # 回退到旧的向量记忆
+    try:
         vector_memory = init_vector_memory()
         if vector_memory:
             results = vector_memory.search_memory(instruction)
-            
+
             # ChromaDB 返回结构: {'documents': [['mem1', 'mem2']], ...}
             if results and results.get('documents') and len(results['documents'][0]) > 0:
                 memories = results['documents'][0]
                 # 过滤掉空的记忆
                 memories = [m for m in memories if m and m.strip()]
-                
+
                 if memories:
                     console.print(f"[dim]Found {len(memories)} relevant memories.[/dim]")
                     memory_text = "\n".join([f"- {m}" for m in memories])
